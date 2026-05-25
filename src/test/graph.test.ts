@@ -463,7 +463,7 @@ describe('Graph - tensor', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Graph - compose (seq)
+// Graph - compose
 // ---------------------------------------------------------------------------
 
 describe('Graph - compose', () => {
@@ -474,6 +474,7 @@ describe('Graph - compose', () => {
         assert.equal(ab.inputs().length, 1);
         assert.equal(ab.outputs().length, 1);
         assert.equal(ab.numEdges(), 2);
+        assert.equal(ab.numVertices(), 4);
     });
 
     it('compose() throws GraphError on arity mismatch', () => {
