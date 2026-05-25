@@ -468,86 +468,82 @@ export class Graph {
     }
 
     /**
-     * Take the monoidal product with the given graph in-place (g ⊗ other).
+     * Returns the monoidal product of this graph with `other`
+     * 
+     * @param layout If true, the vertices and edges of `other` will be shifted
+     *               downwards to avoid overlap with those of this graph.
      *
-     * Use `mul()` to get the tensor product as a new graph without modifying this one.
      */
-    tensor(other: Graph, layout: boolean = true): void {
+    tensor(other: Graph, layout: boolean = true): Graph {
+        const g = this.copy();
         const vmap = new Map<number, number>();
 
         let minOther = 0;
         if (layout) {
-            const vYs = [...this.vdata.values()].map(vd => vd.y);
-            const eYs = [...this.edata.values()].map(ed => ed.y);
+            const vYs = [...g.vdata.values()].map(vd => vd.y);
+            const eYs = [...g.edata.values()].map(ed => ed.y);
             const maxSelf = Math.max(0, ...vYs, ...eYs);
 
             const ovYs = [...other.vdata.values()].map(vd => vd.y);
             const oeYs = [...other.edata.values()].map(ed => ed.y);
             minOther = Math.min(0, ...ovYs, ...oeYs);
 
-            for (const v of this.vertices()) this.vertexData(v).y -= maxSelf;
-            for (const e of this.edges()) this.edgeData(e).y -= maxSelf;
+            for (const v of g.vertices()) g.vertexData(v).y -= maxSelf;
+            for (const e of g.edges()) g.edgeData(e).y -= maxSelf;
         }
 
         for (const v of other.vertices()) {
             const vd = other.vertexData(v);
-            vmap.set(v, this.addVertex(vd.x, vd.y - minOther + 1, vd.value));
+            vmap.set(v, g.addVertex(vd.x, vd.y - minOther + 1, vd.value));
         }
 
         for (const e of other.edges()) {
             const ed = other.edgeData(e);
-            this.addEdge(
+            g.addEdge(
                 ed.s.map(v => vmap.get(v)!),
                 ed.t.map(v => vmap.get(v)!),
                 ed.value, ed.x, ed.y - minOther + 1, ed.fg, ed.bg, ed.hyper
             );
         }
 
-        this.addInputs(other.inputs().map(v => vmap.get(v)!));
-        this.addOutputs(other.outputs().map(v => vmap.get(v)!));
-    }
-
-    /** Returns the monoidal product of this graph with `other` (neither is modified) */
-    mul(other: Graph): Graph {
-        const g = this.copy();
-        g.tensor(other);
+        g.addInputs(other.inputs().map(v => vmap.get(v)!));
+        g.addOutputs(other.outputs().map(v => vmap.get(v)!));
         return g;
     }
 
     /**
-     * Compose with a given graph in diagram order (in-place).
-     *
-     * @param other A graph to plug into the outputs of the current graph
+     * Returns the composition of this graph with `other` in diagram order.
      */
-    compose(other: Graph): void {
+    compose(other: Graph): Graph {
+        const g = this.copy();
         const vmap = new Map<number, number>();
 
-        const vXs = [...this.vdata.values()].map(vd => vd.x);
-        const eXs = [...this.edata.values()].map(ed => ed.x);
+        const vXs = [...g.vdata.values()].map(vd => vd.x);
+        const eXs = [...g.edata.values()].map(ed => ed.x);
         const maxSelf = Math.max(0, ...vXs, ...eXs);
 
         const ovXs = [...other.vdata.values()].map(vd => vd.x);
         const oeXs = [...other.edata.values()].map(ed => ed.x);
         const minOther = Math.min(0, ...ovXs, ...oeXs);
 
-        for (const v of this.vertices()) this.vertexData(v).x -= maxSelf;
-        for (const e of this.edges()) this.edgeData(e).x -= maxSelf;
+        for (const v of g.vertices()) g.vertexData(v).x -= maxSelf;
+        for (const e of g.edges()) g.edgeData(e).x -= maxSelf;
 
         for (const v of other.vertices()) {
             const vd = other.vertexData(v);
-            vmap.set(v, this.addVertex(vd.x - minOther, vd.y, vd.value));
+            vmap.set(v, g.addVertex(vd.x - minOther, vd.y, vd.value));
         }
 
         for (const e of other.edges()) {
             const ed = other.edgeData(e);
-            this.addEdge(
+            g.addEdge(
                 ed.s.map(v => vmap.get(v)!),
                 ed.t.map(v => vmap.get(v)!),
                 ed.value, ed.x - minOther, ed.y, ed.fg, ed.bg, ed.hyper
             );
         }
 
-        const plug1 = this.outputs();
+        const plug1 = g.outputs();
         const plug2 = other.inputs().map(v => vmap.get(v)!);
         const quotient = new Map<number, number>();
 
@@ -557,7 +553,7 @@ export class Graph {
             );
         }
 
-        this.setOutputs(other.outputs().map(v => vmap.get(v)!));
+        g.setOutputs(other.outputs().map(v => vmap.get(v)!));
 
         for (let i = 0; i < plug1.length; i++) {
             let p1 = plug1[i];
@@ -565,20 +561,11 @@ export class Graph {
             while (quotient.has(p1)) p1 = quotient.get(p1)!;
             while (quotient.has(p2)) p2 = quotient.get(p2)!;
             if (p1 !== p2) {
-                this.mergeVertices(p1, p2);
+                g.mergeVertices(p1, p2);
                 quotient.set(p2, p1);
             }
         }
-    }
 
-    /**
-     * Returns the composition of this graph with `other` in diagram order.
-     *
-     * Neither of the two graphs is modified.
-     */
-    seq(other: Graph): Graph {
-        const g = this.copy();
-        g.compose(other);
         return g;
     }
 
