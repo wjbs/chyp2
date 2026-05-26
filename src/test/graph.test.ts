@@ -535,3 +535,72 @@ describe('graphFromJson()', () => {
         assert.equal(g.vertexData(0).value, '');
     });
 });
+
+// ---------------------------------------------------------------------------
+// Graph - boundingBox()
+// ---------------------------------------------------------------------------
+
+describe('Graph - boundingBox()', () => {
+    it('returns default box [-0.5, 0.5, -0.5, 0.5] for empty graph', () => {
+        const g = new Graph();
+        assert.deepEqual(g.boundingBox(), [-0.5, 0.5, -0.5, 0.5]);
+    });
+
+    it('single vertex at origin has half-unit padding on all sides', () => {
+        const g = new Graph();
+        g.addVertex(0, 0);
+        assert.deepEqual(g.boundingBox(), [-0.5, 0.5, -0.5, 0.5]);
+    });
+
+    it('single vertex at arbitrary position', () => {
+        const g = new Graph();
+        g.addVertex(3, 5);
+        assert.deepEqual(g.boundingBox(), [2.5, 3.5, 4.5, 5.5]);
+    });
+
+    it('two vertices span both their padded extents', () => {
+        const g = new Graph();
+        g.addVertex(0, 0);
+        g.addVertex(4, 6);
+        assert.deepEqual(g.boundingBox(), [-0.5, 4.5, -0.5, 6.5]);
+    });
+
+    it('single simple edge (boxSize=1) at origin', () => {
+        const g = new Graph();
+        const v0 = g.addVertex(0, 0);
+        const v1 = g.addVertex(2, 0);
+        g.addEdge([v0], [v1], 'f', 1, 0);
+        // vertices: x in [-0.5, 2.5], y in [-0.5, 0.5]
+        // edge at (1,0) with boxSize=1: x in [0.5, 1.5], y in [-0.5, 0.5]
+        assert.deepEqual(g.boundingBox(), [-0.5, 2.5, -0.5, 0.5]);
+    });
+
+    it('hyper edge (boxSize=2) widens the bounding box', () => {
+        const g = new Graph();
+        const v0 = g.addVertex(-2, 0);
+        const v1 = g.addVertex(2, 0);
+        // edge with 2 sources → boxSize = 2, placed at origin
+        g.addEdge([v0, v1], [], 'f', 0, 0);
+        // edge x: [-1, 1], y: [-1, 1]
+        // vertices x: [-2.5, 2.5], y: [-0.5, 0.5]
+        const [minX, maxX, minY, maxY] = g.boundingBox();
+        assert.equal(minX, -2.5);
+        assert.equal(maxX, 2.5);
+        assert.equal(minY, -1);
+        assert.equal(maxY, 1);
+    });
+
+    it('graph with only edges (no vertices)', () => {
+        const g = new Graph();
+        // addEdge with empty source/target lists to avoid vertex tracking
+        g.addEdge([], [], 'f', 2, 3);
+        // boxSize = 1, so x: [1.5, 2.5], y: [2.5, 3.5]
+        assert.deepEqual(g.boundingBox(), [1.5, 2.5, 2.5, 3.5]);
+    });
+
+    it('negative coordinates are handled correctly', () => {
+        const g = new Graph();
+        g.addVertex(-3, -4);
+        assert.deepEqual(g.boundingBox(), [-3.5, -2.5, -4.5, -3.5]);
+    });
+});

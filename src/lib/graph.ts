@@ -370,6 +370,28 @@ export class Graph {
     }
 
     /**
+     * Compute bounding box of the graph as [minX, maxX, minY, maxY]
+     */
+    boundingBox(): [number, number, number, number] {
+        if (this.vdata.size === 0 && this.edata.size === 0) {
+            return [-0.5, 0.5, -0.5, 0.5];
+        }
+        const vXs0 = [...this.vdata.values()].map(vd => vd.x - 0.5);
+        const vXs1 = [...this.vdata.values()].map(vd => vd.x + 0.5);
+        const vYs0 = [...this.vdata.values()].map(vd => vd.y - 0.5);
+        const vYs1 = [...this.vdata.values()].map(vd => vd.y + 0.5);
+        const eXs0 = [...this.edata.values()].map(ed => ed.x - ed.boxSize() * 0.5);
+        const eXs1 = [...this.edata.values()].map(ed => ed.x + ed.boxSize() * 0.5);
+        const eYs0 = [...this.edata.values()].map(ed => ed.y - ed.boxSize() * 0.5);
+        const eYs1 = [...this.edata.values()].map(ed => ed.y + ed.boxSize() * 0.5);
+        const minX = Math.min(...vXs0, ...eXs0);
+        const maxX = Math.max(...vXs1, ...eXs1);
+        const minY = Math.min(...vYs0, ...eYs0);
+        const maxY = Math.max(...vYs1, ...eYs1);
+        return [minX, maxX, minY, maxY];
+    }
+
+    /**
      * Identify the two vertices given.
      *
      * Forms the quotient of the graph by identifying v with w. Afterwards, the

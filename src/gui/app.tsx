@@ -1,11 +1,12 @@
 import { Editor } from "./Editor";
+import { GraphPanel } from "./GraphPanel";
 import Splitpane from "./Splitpane";
 
 export function App() {
   return (
     <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>
-      <div className="graph-panel">Panel 1</div>
-      <Editor initialContent="Panel 2: Code Editor" onChange={(_content) => true} />
+      <GraphPanel />
+      <Editor initialContent={"gen f : 1 -> 2\ngen g : 2 -> 1\ngen h : 1 -> 1"} onChange={(_content) => true} />
     </Splitpane>
   )
 }
