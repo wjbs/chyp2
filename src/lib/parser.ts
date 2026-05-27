@@ -28,56 +28,49 @@ const LBracket = createToken({ name: "LBracket", pattern: /\[/ });
 const RBracket = createToken({ name: "RBracket", pattern: /\]/ });
 const Comma = createToken({ name: "Comma", pattern: /,/ });
 const Minus = createToken({ name: "Minus", pattern: /-/ });
+const Plus = createToken({ name: "Plus", pattern: /\\+/ });
 const Semicolon = createToken({ name: "Semicolon", pattern: /;/ });
 const Star = createToken({ name: "Star", pattern: /\*/ });
+const Eq = createToken({ name: "Eq", pattern: /=/ });
 
 // numbers and identifiers
 const Nat = createToken({ name: "Nat", pattern: /[0-9]+/ });
-const HexDigit = createToken({ name: "HexDigit", pattern: /[0-9a-fA-F]/ });
+const HexColor = createToken({ name: "HexColor", pattern: /\\"[0-9a-fA-F]{6}\\"/ });
 const Identifier = createToken({ name: "Identifier", pattern: /[a-zA-Z_][a-zA-Z0-9_.]*/ });
-const TacticArg = createToken({ name: "TacticArg", pattern: /[^(),]+/ });
 
-const allTokens = {
-    modes: {
-        global: [
-            WhiteSpace,
-            Comment,
-            Gen,
-            Def,
-            Let,
-            Show,
-            Rule,
-            Rewrite,
-            By,
-            Color,
-            Converse,
-            Import,
-            Sw,
-            Id,
-            Id0,
-            Colon,
-            Question,
-            Arrow,
-            LParen,
-            RParen,
-            LBracket,
-            RBracket,
-            Comma,
-            Minus,
-            Semicolon,
-            Star,
-            Nat,
-            HexDigit,
-            Identifier,
-        ],
-        tacticArgs: [
-            TacticArg,
-            Comma,
-            RParen,
-        ]
-    },
-    defaultMode: "global",
-}
+const allTokens = [
+    WhiteSpace,
+    Comment,
+    Gen,
+    Def,
+    Let,
+    Show,
+    Rule,
+    Rewrite,
+    By,
+    Color,
+    Converse,
+    Import,
+    Sw,
+    Id,
+    Id0,
+    Colon,
+    Question,
+    Arrow,
+    LParen,
+    RParen,
+    LBracket,
+    RBracket,
+    Comma,
+    Minus,
+    Plus,
+    Semicolon,
+    Star,
+    Eq,
+    Nat,
+    HexColor,
+    Identifier,
+];
 
 export class ParseError extends Error {
     public line: number;
@@ -96,4 +89,43 @@ export class ChypParser extends EmbeddedActionsParser {
         super(allTokens);
         this.performSelfAnalysis();
     }
+
+    public document = this.RULE("document", () => {
+        this.MANY(() => this.SUBRULE(this.statement));
+    });
+
+    public statement = this.RULE("statement", () => {
+        this.OR([
+            { ALT: () => this.SUBRULE(this.import) },
+            { ALT: () => this.SUBRULE(this.gen) },
+            { ALT: () => this.SUBRULE(this.let) },
+            { ALT: () => this.SUBRULE(this.def) },
+            { ALT: () => this.SUBRULE(this.rule) },
+            { ALT: () => this.SUBRULE(this.rewrite) },
+            { ALT: () => this.SUBRULE(this.show) },
+        ]);
+    });
+
+    public import = this.RULE("import", () => {
+        this.CONSUME(Import);
+        this.CONSUME(Identifier);
+    });
+
+    public gen = this.RULE("gen", () => {
+    });
+
+    public let = this.RULE("let", () => {
+    });
+
+    public def = this.RULE("def", () => {
+    });
+
+    public rule = this.RULE("rule", () => {
+    });
+
+    public rewrite = this.RULE("rewrite", () => {
+    });
+
+    public show = this.RULE("show", () => {
+    });
 }
