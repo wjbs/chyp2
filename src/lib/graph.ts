@@ -45,7 +45,7 @@ export class VData {
 
 /** The data associated with a single edge */
 export class EData {
-    value: unknown;
+    value: string;
     highlight: boolean;
     x: number;
     y: number;
@@ -58,7 +58,7 @@ export class EData {
     constructor(
         s: number[] = [],
         t: number[] = [],
-        value: unknown = '',
+        value: string = '',
         x: number = 0,
         y: number = 0,
         fg: string = '',
@@ -230,7 +230,7 @@ export class Graph {
     addEdge(
         s: number[],
         t: number[],
-        value: unknown = '',
+        value: string = '',
         x: number = 0,
         y: number = 0,
         fg: string = '',
@@ -380,10 +380,10 @@ export class Graph {
         const vXs1 = [...this.vdata.values()].map(vd => vd.x + 0.5);
         const vYs0 = [...this.vdata.values()].map(vd => vd.y - 0.5);
         const vYs1 = [...this.vdata.values()].map(vd => vd.y + 0.5);
-        const eXs0 = [...this.edata.values()].map(ed => ed.x - ed.boxSize() * 0.5);
-        const eXs1 = [...this.edata.values()].map(ed => ed.x + ed.boxSize() * 0.5);
-        const eYs0 = [...this.edata.values()].map(ed => ed.y - ed.boxSize() * 0.5);
-        const eYs1 = [...this.edata.values()].map(ed => ed.y + ed.boxSize() * 0.5);
+        const eXs0 = [...this.edata.values()].map(ed => ed.x - 1.0);
+        const eXs1 = [...this.edata.values()].map(ed => ed.x + 1.0);
+        const eYs0 = [...this.edata.values()].map(ed => ed.y - (ed.boxSize() + 1) * 0.5);
+        const eYs1 = [...this.edata.values()].map(ed => ed.y + (ed.boxSize() + 1) * 0.5);
         const minX = Math.min(...vXs0, ...eXs0);
         const maxX = Math.max(...vXs1, ...eXs1);
         const minY = Math.min(...vYs0, ...eYs0);
@@ -683,7 +683,7 @@ export function graphFromJson(jsonString: string): Graph {
         g.addEdge(
             (ed['s'] as unknown[]).map(v => parseInt(v as string, 10)),
             (ed['t'] as unknown[]).map(v => parseInt(v as string, 10)),
-            ed['value'] !== undefined ? ed['value'] : '',
+            ed['value'] !== undefined ? String(ed['value']) : '',
             ed['x'] !== undefined ? parseFloat(ed['x'] as string) : 0.0,
             ed['y'] !== undefined ? parseFloat(ed['y'] as string) : 0.0,
             '',
