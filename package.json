@@ -10,6 +10,7 @@
     "test": "mocha"
   },
   "dependencies": {
+    "chevrotain": "^12.0.0",
     "codemirror": "^6.0.1",
     "preact": "^10.29.1"
   },
