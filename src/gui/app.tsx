@@ -1,7 +1,7 @@
 import { Editor } from "./Editor";
 import { GraphView } from "./GraphView";
 import Splitpane from "./Splitpane";
-import { parseDocument } from "../lib/parser";
+import { parser } from "../lib/parser";
 
 export function App() {
   const initialContent = `# Chyp example
@@ -15,7 +15,7 @@ def c3 = c ; c * id
 
 rule m_assoc : m * (m * id) = (m * id) * m
 `;
-  const parsed = parseDocument(initialContent);
+  const parsed = parser.parse(initialContent);
   console.log(parsed);
   return (
     <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>

@@ -1,0 +1,86 @@
+@top Document { statement* }
+
+@top SingleTerm { Term }
+
+statement {
+  Import |
+  Gen |
+  Let |
+  Def |
+  Rule |
+  Rewrite |
+  Show
+}
+
+Import {
+  kw<"import"> Identifier (kw<"as"> Var)?
+  ("(" (ImportLet ("," ImportLet)*)? ")")?
+}
+
+Gen {
+  kw<"gen"> Var ":" Nat "->" Nat GenColor?
+}
+
+Let {
+  kw<"let"> Var "=" Term
+}
+
+Def {
+  kw<"def"> Var "=" Term GenColor?
+}
+
+Rule {
+  kw<"rule"> Var ":" Term "=" Term
+}
+
+Rewrite {
+  kw<"rewrite"> Var ":" Term RewritePart*
+}
+
+Show {
+  kw<"show"> RuleRef
+}
+
+ImportLet { Var "=" Term }
+
+GenColor { HexColor HexColor? }
+
+RewritePart { "=" TermHole (kw<"by"> Tactic)? }
+
+TermHole { "?" | Term }
+
+Term { ParTerm (";" ParTerm)* }
+
+ParTerm { atomicTerm ("*" atomicTerm)* }
+
+atomicTerm {
+  "(" Term ")" |
+  Perm |
+  kw<"id"> |
+  kw<"id0"> |
+  TermRef
+}
+
+Perm { kw<"sw"> "[" Nat ("," Nat)* "]" }
+
+Tactic {
+  (kw<"rule"> | "-"? Identifier) "(" (TacticArg ("," TacticArg)*)? ")"
+}
+
+TacticArg { ("+" | "-")? Identifier }
+
+Var { Identifier }
+TermRef { Identifier }
+RuleRef { Identifier }
+
+kw<term> { @specialize[@name={term}]<Identifier, term> }
+
+@skip { spaces | Comment }
+
+@tokens {
+  spaces { $[ \t\n\r]+ }
+  Comment { "#" ![\n]* }
+  Nat { $[0-9]+ }
+  HexColor { '"' $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] '"' }
+  Identifier { $[a-zA-Z_] $[a-zA-Z0-9_.]* }
+}
