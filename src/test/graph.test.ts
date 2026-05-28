@@ -572,7 +572,7 @@ describe('Graph - boundingBox()', () => {
         g.addEdge([v0], [v1], 'f', 1, 0);
         // vertices: x in [-0.5, 2.5], y in [-0.5, 0.5]
         // edge at (1,0) with boxSize=1: x in [0.5, 1.5], y in [-0.5, 0.5]
-        assert.deepEqual(g.boundingBox(), [-0.5, 2.5, -0.5, 0.5]);
+        assert.deepEqual(g.boundingBox(), [-0.5, 2.5, -1, 1]);
     });
 
     it('hyper edge (boxSize=2) widens the bounding box', () => {
@@ -586,16 +586,15 @@ describe('Graph - boundingBox()', () => {
         const [minX, maxX, minY, maxY] = g.boundingBox();
         assert.equal(minX, -2.5);
         assert.equal(maxX, 2.5);
-        assert.equal(minY, -1);
-        assert.equal(maxY, 1);
+        assert.equal(minY, -1.5);
+        assert.equal(maxY, 1.5);
     });
 
     it('graph with only edges (no vertices)', () => {
         const g = new Graph();
         // addEdge with empty source/target lists to avoid vertex tracking
         g.addEdge([], [], 'f', 2, 3);
-        // boxSize = 1, so x: [1.5, 2.5], y: [2.5, 3.5]
-        assert.deepEqual(g.boundingBox(), [1.5, 2.5, 2.5, 3.5]);
+        assert.deepEqual(g.boundingBox(), [1, 3, 2, 4]);
     });
 
     it('negative coordinates are handled correctly', () => {

@@ -106,24 +106,24 @@ describe('layerDecomp()', () => {
 
 describe('graphToTerm()', () => {
     it('returns the generator label for a single-edge graph', () => {
-        assert.equal(graphToTerm(gen('f', 1, 1)), 'f');
-        assert.equal(graphToTerm(gen('myOp', 2, 3)), 'myOp');
+        assert.equal(graphToTerm(gen('f', 1, 1)).toString(), 'f');
+        assert.equal(graphToTerm(gen('myOp', 2, 3)).toString(), 'myOp');
     });
 
     it('produces "f ; g" for a sequentially composed graph', () => {
         const g = gen('f', 1, 1).compose(gen('g', 1, 1));
-        assert.equal(graphToTerm(g), 'f ; g');
+        assert.equal(graphToTerm(g).toString(), 'f ; g');
     });
 
     it('produces "f ; g ; h" for a three-step composition', () => {
         const g = gen('f', 1, 1).compose(gen('g', 1, 1)).compose(gen('h', 1, 1));
-        assert.equal(graphToTerm(g), 'f ; g ; h');
+        assert.equal(graphToTerm(g).toString(), 'f ; g ; h');
     });
 
     it('produces "f * g" for a parallel (tensor) composition', () => {
         // layout=false keeps both graphs at the same depth, ensuring one layer
         const g = gen('f', 1, 1).tensor(gen('g', 1, 1), false);
-        assert.equal(graphToTerm(g), 'f * g');
+        assert.equal(graphToTerm(g).toString(), 'f * g');
     });
 
     it('produces "sw ; f * g" when a swap precedes parallel boxes', () => {
@@ -133,7 +133,7 @@ describe('graphToTerm()', () => {
         // Manually verify the term contains the swap marker; the exact string
         // depends on which ordering the layer decomposition assigns, so we
         // just check structure rather than exact equality.
-        const term = graphToTerm(swapped);
+        const term = graphToTerm(swapped).toString();
         assert.ok(typeof term === 'string');
         assert.ok(term.length > 0);
     });

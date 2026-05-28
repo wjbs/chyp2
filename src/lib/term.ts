@@ -15,6 +15,73 @@
 
 import { Graph } from './graph.ts';
 
+export class Term {
+}
+
+export class Atom extends Term {
+    ident: string;
+
+    constructor(ident: string) {
+        super();
+        this.ident = ident;
+    }
+
+    toString(): string {
+        return this.ident;
+    }
+}
+
+export class Perm extends Term {
+    perm: number[];
+
+    constructor(perm: number[]) {
+        super();
+        this.perm = perm;
+    }
+
+    toString(): string {
+        return 'sw[' + this.perm.join(', ') + ']';
+    }
+}
+
+export class Seq extends Term {
+    children: Term[];
+
+    constructor(children: Term[] = []) {
+        super();
+        this.children = children;
+    }
+
+    toString(): string {
+        return this.children.map(c => {
+            if (c instanceof Seq) {
+                return '(' + c.toString() + ')';
+            } else {
+                return c.toString();
+            }
+        }).join(' ; ');
+    }
+}
+
+export class Par extends Term {
+    children: Term[];
+
+    constructor(children: Term[] = []) {
+        super();
+        this.children = children;
+    }
+
+    toString(): string {
+        return this.children.map(c => {
+            if (c instanceof Seq || c instanceof Par) {
+                return '(' + c.toString() + ')';
+            } else {
+                return c.toString();
+            }
+        }).join(' * ');
+    }
+}
+
 /**
  * Decompose a graph into regular and singular layers.
  *
@@ -158,12 +225,12 @@ export function splitPerm(perm: number[]): number[][] {
  *
  * Currently only works for monogamous acyclic graphs (symmetric monoidal terms).
  */
-export function graphToTerm(g: Graph): string {
+export function graphToTerm(g: Graph): Term {
     g = g.copy();
     const eLayers = layerDecomp(g);
 
     let inLayer = [...g.inputs()];
-    const seq: string[] = [];
+    const seq = new Seq();
 
     for (let i = 0; i < eLayers.length; i++) {
         // permutation from current vertex layer to sources of this edge layer
@@ -173,11 +240,19 @@ export function graphToTerm(g: Graph): string {
 
         if (!vPerm.every((x, j) => x === j)) {
             const perms = splitPerm(vPerm);
-            seq.push(perms.map(permToString).join(' * '));
+            if (perms.length == 1) {
+                seq.children.push(new Perm(perms[0]));
+            } else {
+                seq.children.push(new Par(perms.map(perm => new Perm(perm))));
+            }
         }
 
         // parallel composition of this edge layer
-        seq.push(eLayers[i].map(e => String(g.edgeData(e).value)).join(' * '));
+        if (eLayers[i].length === 1) {
+            seq.children.push(new Atom(String(g.edgeData(eLayers[i][0]).value)));
+        } else {
+            seq.children.push(new Par(eLayers[i].map(e => new Atom(String(g.edgeData(e).value)))));
+        }
 
         inLayer = eLayers[i].flatMap(e => g.target(e));
     }
@@ -189,8 +264,16 @@ export function graphToTerm(g: Graph): string {
 
     if (!vPerm.every((x, j) => x === j)) {
         const perms = splitPerm(vPerm);
-        seq.push(perms.map(permToString).join(' * '));
+        if (perms.length == 1) {
+            seq.children.push(new Perm(perms[0]));
+        } else {
+            seq.children.push(new Par(perms.map(perm => new Perm(perm))));
+        }
     }
 
-    return seq.join(' ; ');
+    if (seq.children.length === 1) {
+        return seq.children[0];
+    } else {
+        return seq;
+    }
 }

@@ -1,4 +1,4 @@
-import { createToken, Lexer, EmbeddedActionsParser } from "chevrotain";
+import { createToken, Lexer, CstParser } from "chevrotain";
 
 const WhiteSpace = createToken({ name: "WhiteSpace", pattern: /[ \t\n\r]+/, group: Lexer.SKIPPED });
 const Comment = createToken({ name: "Comment", pattern: /#[^\n]*/, group: Lexer.SKIPPED });
@@ -14,8 +14,8 @@ const By = createToken({ name: "By", pattern: /by/ });
 const As = createToken({ name: "As", pattern: /as/ });
 const Import = createToken({ name: "Import", pattern: /import/ });
 const Sw = createToken({ name: "Sw", pattern: /sw/ });
-const Id = createToken({ name: "Id", pattern: /id/ });
 const Id0 = createToken({ name: "Id0", pattern: /id0/ });
+const Id = createToken({ name: "Id", pattern: /id/ });
 
 // symbols
 const Colon = createToken({ name: "Colon", pattern: /:/ });
@@ -50,8 +50,8 @@ const allTokens = [
     As,
     Import,
     Sw,
-    Id,
     Id0,
+    Id,
     Colon,
     Question,
     Arrow,
@@ -82,7 +82,7 @@ export class ParseError extends Error {
     }
 }
 
-export class ChypParser extends EmbeddedActionsParser {
+export class ChypParser extends CstParser {
     constructor() {
         super(allTokens);
         this.performSelfAnalysis();
@@ -93,16 +93,22 @@ export class ChypParser extends EmbeddedActionsParser {
     });
 
     public term = this.RULE("term", () => {
-        this.OR([
-            { ALT: () => this.SUBRULE(this.parTerm) },
-            { ALT: () => this.SUBRULE(this.seq) },
-        ]);
+        this.AT_LEAST_ONE_SEP({
+            SEP: Semicolon,
+            DEF: () => this.SUBRULE(this.parTerm),
+        });
     });
 
     private parTerm = this.RULE("parTerm", () => {
+        this.AT_LEAST_ONE_SEP({
+            SEP: Star,
+            DEF: () => this.SUBRULE(this.atomicTerm),
+        });
+    });
+
+    private atomicTerm = this.RULE("atomicTerm", () => {
         this.OR([
             { ALT: () => this.SUBRULE(this.nestedTerm) },
-            { ALT: () => this.SUBRULE(this.par) },
             { ALT: () => this.SUBRULE(this.perm) },
             { ALT: () => this.CONSUME(Id) },
             { ALT: () => this.CONSUME(Id0) },
@@ -114,18 +120,6 @@ export class ChypParser extends EmbeddedActionsParser {
         this.CONSUME(LParen);
         this.SUBRULE(this.term);
         this.CONSUME(RParen);
-    });
-
-    private par = this.RULE("par", () => {
-        this.SUBRULE(this.parTerm);
-        this.CONSUME(Star);
-        this.SUBRULE1(this.parTerm);
-    });
-
-    private seq = this.RULE("seq", () => {
-        this.SUBRULE(this.term);
-        this.CONSUME(Semicolon);
-        this.SUBRULE1(this.term);
     });
 
     private perm = this.RULE("perm", () => {
@@ -173,7 +167,7 @@ export class ChypParser extends EmbeddedActionsParser {
         this.CONSUME(Colon);
         this.CONSUME(Nat);
         this.CONSUME(Arrow);
-        this.CONSUME(Nat);
+        this.CONSUME1(Nat);
         this.OPTION(() => {
             this.SUBRULE(this.genColor);
         });
@@ -191,7 +185,9 @@ export class ChypParser extends EmbeddedActionsParser {
         this.SUBRULE(this.var);
         this.CONSUME(Eq);
         this.SUBRULE(this.term);
-        this.SUBRULE(this.genColor);
+        this.OPTION(() => {
+            this.SUBRULE(this.genColor);
+        });
     });
 
     private rule = this.RULE("rule", () => {
@@ -227,7 +223,7 @@ export class ChypParser extends EmbeddedActionsParser {
     private genColor = this.RULE("genColor", () => {
         this.CONSUME(HexColor);
         this.OPTION(() => {
-            this.CONSUME(HexColor);
+            this.CONSUME1(HexColor);
         });
     });
 
@@ -249,15 +245,13 @@ export class ChypParser extends EmbeddedActionsParser {
 
     private tactic = this.RULE("tactic", () => {
         this.OR([
-            { ALT: () => this.SUBRULE(this.tacticArg) },
-            { ALT: () => this.SUBRULE(this.tacticExpr) },
-        ]);
-    });
-
-    private tacticExpr = this.RULE("tacticExpr", () => {
-        this.OR([
             { ALT: () => this.CONSUME(Rule) },
-            { ALT: () => this.CONSUME(Identifier) },
+            {
+                ALT: () => {
+                    this.OPTION(() => this.CONSUME(Minus));
+                    this.CONSUME(Identifier);
+                }
+            },
         ]);
         this.CONSUME(LParen);
         this.MANY_SEP({
@@ -288,4 +282,28 @@ export class ChypParser extends EmbeddedActionsParser {
     private ruleRef = this.RULE("ruleRef", () => {
         this.CONSUME(Identifier);
     });
+}
+
+export function parseDocument(input: string) {
+    const lexer = new Lexer(allTokens);
+    const lexResult = lexer.tokenize(input);
+    if (lexResult.errors.length > 0) {
+        throw new ParseError(
+            lexResult.errors[0].line ?? 0,
+            lexResult.errors[0].column ?? 0,
+            lexResult.errors[0].message);
+    }
+
+    const parser = new ChypParser();
+    parser.input = lexResult.tokens;
+    const cst = parser.document();
+
+    if (parser.errors.length > 0) {
+        throw new ParseError(
+            parser.errors[0].token.startLine ?? 0,
+            parser.errors[0].token.startColumn ?? 0,
+            parser.errors[0].message);
+    }
+
+    return cst;
 }
