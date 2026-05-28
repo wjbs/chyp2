@@ -11,8 +11,7 @@ const Show = createToken({ name: "Show", pattern: /show/ });
 const Rule = createToken({ name: "Rule", pattern: /rule/ });
 const Rewrite = createToken({ name: "Rewrite", pattern: /rewrite/ });
 const By = createToken({ name: "By", pattern: /by/ });
-const Color = createToken({ name: "Color", pattern: /color/ });
-const Converse = createToken({ name: "Converse", pattern: /converse/ });
+const As = createToken({ name: "As", pattern: /as/ });
 const Import = createToken({ name: "Import", pattern: /import/ });
 const Sw = createToken({ name: "Sw", pattern: /sw/ });
 const Id = createToken({ name: "Id", pattern: /id/ });
@@ -48,8 +47,7 @@ const allTokens = [
     Rule,
     Rewrite,
     By,
-    Color,
-    Converse,
+    As,
     Import,
     Sw,
     Id,
@@ -94,7 +92,53 @@ export class ChypParser extends EmbeddedActionsParser {
         this.MANY(() => this.SUBRULE(this.statement));
     });
 
-    public statement = this.RULE("statement", () => {
+    public term = this.RULE("term", () => {
+        this.OR([
+            { ALT: () => this.SUBRULE(this.parTerm) },
+            { ALT: () => this.SUBRULE(this.seq) },
+        ]);
+    });
+
+    private parTerm = this.RULE("parTerm", () => {
+        this.OR([
+            { ALT: () => this.SUBRULE(this.nestedTerm) },
+            { ALT: () => this.SUBRULE(this.par) },
+            { ALT: () => this.SUBRULE(this.perm) },
+            { ALT: () => this.CONSUME(Id) },
+            { ALT: () => this.CONSUME(Id0) },
+            { ALT: () => this.SUBRULE(this.termRef) },
+        ]);
+    });
+
+    private nestedTerm = this.RULE("nestedTerm", () => {
+        this.CONSUME(LParen);
+        this.SUBRULE(this.term);
+        this.CONSUME(RParen);
+    });
+
+    private par = this.RULE("par", () => {
+        this.SUBRULE(this.parTerm);
+        this.CONSUME(Star);
+        this.SUBRULE1(this.parTerm);
+    });
+
+    private seq = this.RULE("seq", () => {
+        this.SUBRULE(this.term);
+        this.CONSUME(Semicolon);
+        this.SUBRULE1(this.term);
+    });
+
+    private perm = this.RULE("perm", () => {
+        this.CONSUME(Sw);
+        this.CONSUME(LBracket);
+        this.AT_LEAST_ONE_SEP({
+            SEP: Comma,
+            DEF: () => this.CONSUME(Nat),
+        });
+        this.CONSUME(RBracket);
+    });
+
+    private statement = this.RULE("statement", () => {
         this.OR([
             { ALT: () => this.SUBRULE(this.import) },
             { ALT: () => this.SUBRULE(this.gen) },
@@ -106,26 +150,142 @@ export class ChypParser extends EmbeddedActionsParser {
         ]);
     });
 
-    public import = this.RULE("import", () => {
+    private import = this.RULE("import", () => {
         this.CONSUME(Import);
+        this.CONSUME(Identifier);
+        this.OPTION(() => {
+            this.CONSUME(As);
+            this.SUBRULE(this.var);
+        });
+        this.OPTION1(() => {
+            this.CONSUME(LParen);
+            this.MANY_SEP({
+                SEP: Comma,
+                DEF: () => this.SUBRULE1(this.importLet),
+            });
+            this.CONSUME(RParen);
+        });
+    });
+
+    private gen = this.RULE("gen", () => {
+        this.CONSUME(Gen);
+        this.SUBRULE(this.var);
+        this.CONSUME(Colon);
+        this.CONSUME(Nat);
+        this.CONSUME(Arrow);
+        this.CONSUME(Nat);
+        this.OPTION(() => {
+            this.SUBRULE(this.genColor);
+        });
+    });
+
+    private let = this.RULE("let", () => {
+        this.CONSUME(Let);
+        this.SUBRULE(this.var);
+        this.CONSUME(Eq);
+        this.SUBRULE(this.term);
+    });
+
+    private def = this.RULE("def", () => {
+        this.CONSUME(Def);
+        this.SUBRULE(this.var);
+        this.CONSUME(Eq);
+        this.SUBRULE(this.term);
+        this.SUBRULE(this.genColor);
+    });
+
+    private rule = this.RULE("rule", () => {
+        this.CONSUME(Rule);
+        this.SUBRULE(this.var);
+        this.CONSUME(Colon);
+        this.SUBRULE(this.term);
+        this.CONSUME(Eq);
+        this.SUBRULE1(this.term);
+    });
+
+    private rewrite = this.RULE("rewrite", () => {
+        this.CONSUME(Rewrite);
+        this.SUBRULE(this.var);
+        this.CONSUME(Colon);
+        this.SUBRULE(this.term);
+        this.MANY(() => {
+            this.SUBRULE1(this.rewritePart);
+        });
+    });
+
+    private show = this.RULE("show", () => {
+        this.CONSUME(Show);
+        this.SUBRULE(this.ruleRef);
+    });
+
+    private importLet = this.RULE("importLet", () => {
+        this.SUBRULE(this.var);
+        this.CONSUME(Eq);
+        this.SUBRULE(this.term);
+    });
+
+    private genColor = this.RULE("genColor", () => {
+        this.CONSUME(HexColor);
+        this.OPTION(() => {
+            this.CONSUME(HexColor);
+        });
+    });
+
+    private rewritePart = this.RULE("rewritePart", () => {
+        this.CONSUME(Eq);
+        this.SUBRULE(this.termHole);
+        this.OPTION(() => {
+            this.CONSUME(By);
+            this.SUBRULE(this.tactic);
+        });
+    });
+
+    private termHole = this.RULE("termHole", () => {
+        this.OR([
+            { ALT: () => this.CONSUME(Question) },
+            { ALT: () => this.SUBRULE(this.term) },
+        ]);
+    });
+
+    private tactic = this.RULE("tactic", () => {
+        this.OR([
+            { ALT: () => this.SUBRULE(this.tacticArg) },
+            { ALT: () => this.SUBRULE(this.tacticExpr) },
+        ]);
+    });
+
+    private tacticExpr = this.RULE("tacticExpr", () => {
+        this.OR([
+            { ALT: () => this.CONSUME(Rule) },
+            { ALT: () => this.CONSUME(Identifier) },
+        ]);
+        this.CONSUME(LParen);
+        this.MANY_SEP({
+            SEP: Comma,
+            DEF: () => this.SUBRULE(this.tacticArg),
+        });
+        this.CONSUME(RParen);
+    });
+
+    private tacticArg = this.RULE("tacticArg", () => {
+        this.OPTION(() => {
+            this.OR([
+                { ALT: () => this.CONSUME(Plus) },
+                { ALT: () => this.CONSUME(Minus) },
+            ]);
+        });
         this.CONSUME(Identifier);
     });
 
-    public gen = this.RULE("gen", () => {
+    private var = this.RULE("var", () => {
+        this.CONSUME(Identifier);
     });
 
-    public let = this.RULE("let", () => {
+    private termRef = this.RULE("termRef", () => {
+        this.CONSUME(Identifier);
     });
 
-    public def = this.RULE("def", () => {
-    });
-
-    public rule = this.RULE("rule", () => {
-    });
-
-    public rewrite = this.RULE("rewrite", () => {
-    });
-
-    public show = this.RULE("show", () => {
+    private ruleRef = this.RULE("ruleRef", () => {
+        this.CONSUME(Identifier);
     });
 }
