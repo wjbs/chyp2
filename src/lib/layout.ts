@@ -58,7 +58,8 @@ function enforceMinSpacing(positions: number[], minGaps: number[]): void {
  * After iteration the whole diagram is centred and non-boundary target vertices are
  * snapped to their incoming edge.
  */
-export function convexLayout(g: Graph): void {
+export function convexLayout(g: Graph, force: boolean = false): void {
+    if (g.laidOut && !force) return;
     const eLayers = layerDecomp(g);
 
     // ----- Assign initial x-coordinates and rough y-coordinates -----
@@ -194,4 +195,6 @@ export function convexLayout(g: Graph): void {
             }
         }
     }
+
+    g.laidOut = true;
 }

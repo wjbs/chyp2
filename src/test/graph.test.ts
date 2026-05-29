@@ -5,9 +5,6 @@ import {
     VData,
     EData,
     GraphError,
-    gen,
-    perm,
-    identity,
     graphFromJson,
 } from '../lib/graph.ts';
 
@@ -360,7 +357,7 @@ describe('Graph - highlight / unhighlight', () => {
 // ---------------------------------------------------------------------------
 
 describe('Graph - insertIdAfter()', () => {
-    it('inserts a new identity edge after a vertex', () => {
+    it('inserts a new Graph.identity edge after a vertex', () => {
         const g = new Graph();
         const v = g.addVertex(0, 0);
         const x = g.addVertex(3, 0);
@@ -381,12 +378,12 @@ describe('Graph - insertIdAfter()', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Helper functions - gen, perm, identity
+// Helper functions - Graph.gen, Graph.perm, Graph.identity
 // ---------------------------------------------------------------------------
 
-describe('gen()', () => {
+describe('Graph.gen()', () => {
     it('creates a graph with the correct number of inputs and outputs', () => {
-        const g = gen('f', 2, 3);
+        const g = Graph.gen('f', 2, 3);
         assert.equal(g.inputs().length, 2);
         assert.equal(g.outputs().length, 3);
         assert.equal(g.numEdges(), 1);
@@ -394,23 +391,23 @@ describe('gen()', () => {
     });
 
     it('stores value, fg, bg on the edge', () => {
-        const g = gen('myOp', 1, 1, 'ff0000', '00ff00');
+        const g = Graph.gen('myOp', 1, 1, 'ff0000', '00ff00');
         const e = [...g.edges()][0];
         assert.equal(g.edgeData(e).value, 'myOp');
         assert.equal(g.edgeData(e).fg, 'ff0000');
         assert.equal(g.edgeData(e).bg, '00ff00');
     });
 
-    it('produces a 0-arity generator (cap-like)', () => {
-        const g = gen('cap', 0, 2);
+    it('produces a 0-arity Graph.generator (cap-like)', () => {
+        const g = Graph.gen('cap', 0, 2);
         assert.equal(g.inputs().length, 0);
         assert.equal(g.outputs().length, 2);
     });
 });
 
-describe('perm()', () => {
-    it('identity permutation maps input i to output i', () => {
-        const g = perm([0, 1, 2]);
+describe('Graph.perm()', () => {
+    it('Graph.identity Graph.permutation maps input i to output i', () => {
+        const g = Graph.perm([0, 1, 2]);
         assert.equal(g.inputs().length, 3);
         assert.equal(g.outputs().length, 3);
         // no edges - just shared vertices
@@ -420,17 +417,17 @@ describe('perm()', () => {
         }
     });
 
-    it('swap permutation [1,0] maps correctly', () => {
-        const g = perm([1, 0]);
+    it('swap Graph.permutation [1,0] maps correctly', () => {
+        const g = Graph.perm([1, 0]);
         // input 0 should be at output position 1, and vice versa
         assert.equal(g.inputs()[0], g.outputs()[1]);
         assert.equal(g.inputs()[1], g.outputs()[0]);
     });
 });
 
-describe('identity()', () => {
+describe('Graph.identity()', () => {
     it('has one vertex that is both input and output', () => {
-        const g = identity();
+        const g = Graph.identity();
         assert.equal(g.numVertices(), 1);
         assert.equal(g.numEdges(), 0);
         assert.equal(g.inputs().length, 1);
@@ -445,8 +442,8 @@ describe('identity()', () => {
 
 describe('Graph - tensor', () => {
     it('tensor() combines inputs and outputs', () => {
-        const a = gen('a', 1, 1);
-        const b = gen('b', 2, 1);
+        const a = Graph.gen('a', 1, 1);
+        const b = Graph.gen('b', 2, 1);
         const ab = a.tensor(b);
         assert.equal(ab.inputs().length, 3);
         assert.equal(ab.outputs().length, 2);
@@ -454,8 +451,8 @@ describe('Graph - tensor', () => {
     });
 
     it('tensor() does not modify the original graphs', () => {
-        const a = gen('a', 1, 1);
-        const b = gen('b', 1, 1);
+        const a = Graph.gen('a', 1, 1);
+        const b = Graph.gen('b', 1, 1);
         const origAVerts = a.numVertices();
         a.tensor(b);
         assert.equal(a.numVertices(), origAVerts);
@@ -468,8 +465,8 @@ describe('Graph - tensor', () => {
 
 describe('Graph - compose', () => {
     it('compose() merges outputs of first with inputs of second', () => {
-        const a = gen('a', 1, 2);
-        const b = gen('b', 2, 1);
+        const a = Graph.gen('a', 1, 2);
+        const b = Graph.gen('b', 2, 1);
         const ab = a.compose(b);
         assert.equal(ab.inputs().length, 1);
         assert.equal(ab.outputs().length, 1);
@@ -478,14 +475,14 @@ describe('Graph - compose', () => {
     });
 
     it('compose() throws GraphError on arity mismatch', () => {
-        const a = gen('a', 1, 2);
-        const b = gen('b', 3, 1);
+        const a = Graph.gen('a', 1, 2);
+        const b = Graph.gen('b', 3, 1);
         assert.throws(() => a.compose(b), GraphError);
     });
 
-    it('identity() is left-neutral for compose', () => {
-        const f = gen('f', 1, 2);
-        const result = identity().compose(f); // id ; f ≈ f up to vertex names
+    it('Graph.identity() is left-neutral for compose', () => {
+        const f = Graph.gen('f', 1, 2);
+        const result = Graph.identity().compose(f); // id ; f ≈ f up to vertex names
         assert.equal(result.inputs().length, f.inputs().length);
         assert.equal(result.outputs().length, f.outputs().length);
     });

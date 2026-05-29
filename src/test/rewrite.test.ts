@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'mocha';
-import { gen } from '../lib/graph.ts';
+import { Graph } from '../lib/graph.ts';
 import { Rule } from '../lib/rule.ts';
 import { matchRule, findIso } from '../lib/matcher.ts';
 import { dpo, rewrite } from '../lib/rewrite.ts';
@@ -10,7 +10,7 @@ import { dpo, rewrite } from '../lib/rewrite.ts';
 // ---------------------------------------------------------------------------
 
 /** Return the first match from matchRule, asserting it exists. */
-function firstRuleMatch(r: Rule, g: ReturnType<typeof gen>) {
+function firstRuleMatch(r: Rule, g: ReturnType<typeof Graph.gen>) {
     for (const m of matchRule(r, g)) return m;
     throw new Error('No match found');
 }
@@ -21,8 +21,8 @@ function firstRuleMatch(r: Rule, g: ReturnType<typeof gen>) {
 
 describe('rewrite()', () => {
     it('replaces f with g in a single-edge graph', () => {
-        const r = new Rule(gen('f', 1, 1), gen('g', 1, 1));
-        const cod = gen('f', 1, 1);
+        const r = new Rule(Graph.gen('f', 1, 1), Graph.gen('g', 1, 1));
+        const cod = Graph.gen('f', 1, 1);
         const m = firstRuleMatch(r, cod);
 
         const result = rewrite(r, m);
@@ -35,8 +35,8 @@ describe('rewrite()', () => {
     });
 
     it('replaces f in the middle of a f;h graph leaving h intact', () => {
-        const r = new Rule(gen('f', 1, 1), gen('g', 1, 1));
-        const cod = gen('f', 1, 1).compose(gen('h', 1, 1));
+        const r = new Rule(Graph.gen('f', 1, 1), Graph.gen('g', 1, 1));
+        const cod = Graph.gen('f', 1, 1).compose(Graph.gen('h', 1, 1));
         const m = firstRuleMatch(r, cod);
 
         const result = rewrite(r, m);
@@ -48,8 +48,8 @@ describe('rewrite()', () => {
     });
 
     it('replaces f in h;f;k, preserving h and k', () => {
-        const r = new Rule(gen('f', 1, 1), gen('g', 1, 1));
-        const cod = gen('h', 1, 1).compose(gen('f', 1, 1)).compose(gen('k', 1, 1));
+        const r = new Rule(Graph.gen('f', 1, 1), Graph.gen('g', 1, 1));
+        const cod = Graph.gen('h', 1, 1).compose(Graph.gen('f', 1, 1)).compose(Graph.gen('k', 1, 1));
         const m = firstRuleMatch(r, cod);
 
         const result = rewrite(r, m);
@@ -61,19 +61,19 @@ describe('rewrite()', () => {
         assert.ok(!edgeValues.includes('f'));
     });
 
-    it('produces a graph isomorphic to gen(g,1,1) when rewriting a standalone f', () => {
-        const r = new Rule(gen('f', 1, 1), gen('g', 1, 1));
-        const cod = gen('f', 1, 1);
+    it('produces a graph isomorphic to Graph.gen(g,1,1) when rewriting a standalone f', () => {
+        const r = new Rule(Graph.gen('f', 1, 1), Graph.gen('g', 1, 1));
+        const cod = Graph.gen('f', 1, 1);
         const m = firstRuleMatch(r, cod);
         const result = rewrite(r, m);
 
-        const expected = gen('g', 1, 1);
-        assert.ok(findIso(result, expected) !== undefined, 'Result should be iso to gen(g,1,1)');
+        const expected = Graph.gen('g', 1, 1);
+        assert.ok(findIso(result, expected) !== undefined, 'Result should be iso to Graph.gen(g,1,1)');
     });
 
     it('handles a scalar rule (0->0 arity)', () => {
-        const r = new Rule(gen('s', 0, 0), gen('t', 0, 0));
-        const cod = gen('s', 0, 0);
+        const r = new Rule(Graph.gen('s', 0, 0), Graph.gen('t', 0, 0));
+        const cod = Graph.gen('s', 0, 0);
         const m = firstRuleMatch(r, cod);
         const result = rewrite(r, m);
 
@@ -84,8 +84,8 @@ describe('rewrite()', () => {
 
     it('handles a multi-input/output rule', () => {
         // lhs and rhs must have the same boundary counts
-        const r = new Rule(gen('mult', 2, 1), gen('mult2', 2, 1));
-        const cod = gen('mult', 2, 1);
+        const r = new Rule(Graph.gen('mult', 2, 1), Graph.gen('mult2', 2, 1));
+        const cod = Graph.gen('mult', 2, 1);
         const m = firstRuleMatch(r, cod);
         const result = rewrite(r, m);
 
@@ -103,8 +103,8 @@ describe('rewrite()', () => {
 
 describe('dpo()', () => {
     it('returns a Match whose cod is the rewritten graph', () => {
-        const r = new Rule(gen('f', 1, 1), gen('g', 1, 1));
-        const cod = gen('f', 1, 1);
+        const r = new Rule(Graph.gen('f', 1, 1), Graph.gen('g', 1, 1));
+        const cod = Graph.gen('f', 1, 1);
         const m = firstRuleMatch(r, cod);
 
         const m1 = dpo(r, m);
@@ -115,8 +115,8 @@ describe('dpo()', () => {
     });
 
     it('the returned match image contains the rhs edge', () => {
-        const r = new Rule(gen('f', 1, 1), gen('g', 1, 1));
-        const cod = gen('f', 1, 1);
+        const r = new Rule(Graph.gen('f', 1, 1), Graph.gen('g', 1, 1));
+        const cod = Graph.gen('f', 1, 1);
         const m = firstRuleMatch(r, cod);
 
         const m1 = dpo(r, m);
@@ -128,9 +128,9 @@ describe('dpo()', () => {
     });
 
     it('rewrite() and dpo().cod produce the same graph (up to iso)', () => {
-        const r = new Rule(gen('f', 1, 1), gen('g', 1, 1));
-        const cod1 = gen('f', 1, 1);
-        const cod2 = gen('f', 1, 1);
+        const r = new Rule(Graph.gen('f', 1, 1), Graph.gen('g', 1, 1));
+        const cod1 = Graph.gen('f', 1, 1);
+        const cod2 = Graph.gen('f', 1, 1);
         const m1 = firstRuleMatch(r, cod1);
         const m2 = firstRuleMatch(r, cod2);
 

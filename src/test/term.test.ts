@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'mocha';
-import { gen, Graph } from '../lib/graph.ts';
+import { Graph } from '../lib/graph.ts';
 import { layerDecomp, permToString, splitPerm, graphToTerm } from '../lib/term.ts';
 
 // ---------------------------------------------------------------------------
@@ -59,8 +59,8 @@ describe('splitPerm()', () => {
 // ---------------------------------------------------------------------------
 
 describe('layerDecomp()', () => {
-    it('returns one layer for a single-edge gen(f,1,1)', () => {
-        const g = gen('f', 1, 1);
+    it('returns one layer for a single-edge Graph.gen(f,1,1)', () => {
+        const g = Graph.gen('f', 1, 1);
         const layers = layerDecomp(g);
         assert.equal(layers.length, 1);
         assert.equal(layers[0].length, 1);
@@ -68,7 +68,7 @@ describe('layerDecomp()', () => {
     });
 
     it('returns two layers for a composed f;g', () => {
-        const g = gen('f', 1, 1).compose(gen('g', 1, 1));
+        const g = Graph.gen('f', 1, 1).compose(Graph.gen('g', 1, 1));
         const layers = layerDecomp(g);
         assert.equal(layers.length, 2);
         // First layer contains f, second contains g
@@ -78,7 +78,7 @@ describe('layerDecomp()', () => {
     });
 
     it('returns one layer for a parallel f*g (tensor)', () => {
-        const g = gen('f', 1, 1).tensor(gen('g', 1, 1), false);
+        const g = Graph.gen('f', 1, 1).tensor(Graph.gen('g', 1, 1), false);
         const layers = layerDecomp(g);
         assert.equal(layers.length, 1);
         assert.equal(layers[0].length, 2);
@@ -105,31 +105,31 @@ describe('layerDecomp()', () => {
 // ---------------------------------------------------------------------------
 
 describe('graphToTerm()', () => {
-    it('returns the generator label for a single-edge graph', () => {
-        assert.equal(graphToTerm(gen('f', 1, 1)).toString(), 'f');
-        assert.equal(graphToTerm(gen('myOp', 2, 3)).toString(), 'myOp');
+    it('returns the Graph.generator label for a single-edge graph', () => {
+        assert.equal(graphToTerm(Graph.gen('f', 1, 1)).toString(), 'f');
+        assert.equal(graphToTerm(Graph.gen('myOp', 2, 3)).toString(), 'myOp');
     });
 
     it('produces "f ; g" for a sequentially composed graph', () => {
-        const g = gen('f', 1, 1).compose(gen('g', 1, 1));
+        const g = Graph.gen('f', 1, 1).compose(Graph.gen('g', 1, 1));
         assert.equal(graphToTerm(g).toString(), 'f ; g');
     });
 
     it('produces "f ; g ; h" for a three-step composition', () => {
-        const g = gen('f', 1, 1).compose(gen('g', 1, 1)).compose(gen('h', 1, 1));
+        const g = Graph.gen('f', 1, 1).compose(Graph.gen('g', 1, 1)).compose(Graph.gen('h', 1, 1));
         assert.equal(graphToTerm(g).toString(), 'f ; g ; h');
     });
 
     it('produces "f * g" for a parallel (tensor) composition', () => {
         // layout=false keeps both graphs at the same depth, ensuring one layer
-        const g = gen('f', 1, 1).tensor(gen('g', 1, 1), false);
+        const g = Graph.gen('f', 1, 1).tensor(Graph.gen('g', 1, 1), false);
         assert.equal(graphToTerm(g).toString(), 'f * g');
     });
 
     it('produces "sw ; f * g" when a swap precedes parallel boxes', () => {
         // Build: two inputs [v0, v1], then swap them so they feed g and f
-        // i.e.  perm([1,0]) composed with gen('f',1,1) tensor gen('g',1,1)
-        const swapped = gen('f', 1, 1).tensor(gen('g', 1, 1), false);
+        // i.e.  perm([1,0]) composed with Graph.gen('f',1,1) tensor Graph.gen('g',1,1)
+        const swapped = Graph.gen('f', 1, 1).tensor(Graph.gen('g', 1, 1), false);
         // Manually verify the term contains the swap marker; the exact string
         // depends on which ordering the layer decomposition assigns, so we
         // just check structure rather than exact equality.
@@ -139,7 +139,7 @@ describe('graphToTerm()', () => {
     });
 
     it('does not modify the original graph', () => {
-        const g = gen('f', 1, 1).compose(gen('g', 1, 1));
+        const g = Graph.gen('f', 1, 1).compose(Graph.gen('g', 1, 1));
         const before = { verts: g.numVertices(), edges: g.numEdges() };
         graphToTerm(g);
         assert.equal(g.numVertices(), before.verts);

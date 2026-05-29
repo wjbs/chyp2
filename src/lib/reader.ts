@@ -1,5 +1,6 @@
 import { Tree, TreeCursor } from "@lezer/common";
-import type { State } from "./state";
+import { Graph } from "./graph";
+import { GraphPart, type State } from "./state";
 import { Term, Atom, Par, Seq, Perm } from "./term";
 
 export function logTree(parseTree: Tree) {
@@ -65,6 +66,7 @@ export class ChypReader {
 
     readGen(): void {
         if (!this.c) return;
+        const part = new GraphPart(this.c.node.from, this.c.node.to);
         this.c.firstChild(); // gen
         this.c.nextSibling(); // name
         const name = this.readIdent();
@@ -77,10 +79,13 @@ export class ChypReader {
         // TODO: colors
         this.c.parent();
 
+        part.lhs = Graph.gen(name, sourceArity, targetArity);
+        this.state.addPart(part);
         console.log(`read gen: ${name} : ${sourceArity} -> ${targetArity}`);
     }
     readLet(): void {
         if (!this.c) return;
+        const part = new GraphPart(this.c.node.from, this.c.node.to);
         this.c.firstChild(); // let
         this.c.nextSibling(); // name
         const name = this.readIdent();
@@ -89,11 +94,14 @@ export class ChypReader {
         const t = this.readTerm();
         this.c.parent();
 
+        this.state.addPart(part);
         console.log(`read let: ${name} = ${t.toString()}`);
     }
 
     readDef(): void {
         if (!this.c) return;
+        const part = new GraphPart(this.c.node.from, this.c.node.to);
+
         this.c.firstChild(); // def
         this.c.nextSibling(); // name
         const name = this.readIdent();
@@ -103,11 +111,14 @@ export class ChypReader {
         // TODO: colors
         this.c.parent();
 
+        this.state.addPart(part);
         console.log(`read def: ${name} = ${t.toString()}`);
     }
 
     readRule(): void {
         if (!this.c) return;
+        const part = new GraphPart(this.c.node.from, this.c.node.to);
+
         this.c.firstChild(); // rule
         this.c.nextSibling(); // name
         const name = this.readIdent();
@@ -119,6 +130,7 @@ export class ChypReader {
         const rhs = this.readTerm();
         this.c.parent();
 
+        this.state.addPart(part);
         console.log(`read rule: ${name} : ${lhs.toString()} = ${rhs.toString()}`);
     }
 

@@ -15,8 +15,7 @@
 
 import { Graph } from './graph.ts';
 
-export class Term {
-}
+export class Term { }
 
 export class Atom extends Term {
     ident: string;

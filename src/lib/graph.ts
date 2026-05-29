@@ -109,6 +109,7 @@ export class Graph {
     private _outputs: number[];
     vindex: number;
     eindex: number;
+    laidOut: boolean = false;
 
     constructor() {
         this.vdata = new Map();
@@ -614,57 +615,58 @@ export class Graph {
             ed.highlight = false;
         }
     }
+
+    /**
+     * Returns a graph with a single hyperedge and the given number of inputs/outputs.
+     *
+     * @param value    The label for the hyperedge
+     * @param arity    The number of input vertices connected to the source of the edge
+     * @param coarity  The number of output vertices connected to the target of the edge
+     * @param fg       Optional foreground color as a 6-digit RGB hex code
+     * @param bg       Optional background color as a 6-digit RGB hex code
+     */
+    public static gen(value: string, arity: number, coarity: number, fg: string = '', bg: string = ''): Graph {
+        const g = new Graph();
+        const inputs = Array.from({ length: arity }, (_, i) => g.addVertex(-1.5, i - (arity - 1) / 2));
+        const outputs = Array.from({ length: coarity }, (_, i) => g.addVertex(1.5, i - (coarity - 1) / 2));
+        g.addEdge(inputs, outputs, value, 0, 0, fg, bg);
+        g.setInputs(inputs);
+        g.setOutputs(outputs);
+        return g;
+    }
+
+    /**
+     * Returns a graph corresponding to the given permutation.
+     *
+     * The permutation is given as a list [x0,..,x(n-1)], interpreted as { x0 -> 0, x1 -> 1, ..., x(n-1) -> n-1 }.
+     * Input xj is mapped to the same vertex as output j.
+     *
+     * @param p A permutation as an n-element list of integers from 0 to n-1
+     */
+    public static perm(p: number[]): Graph {
+        const g = new Graph();
+        const size = p.length;
+        const inputs = Array.from({ length: size }, (_, i) => g.addVertex(0, i - (size - 1) / 2));
+        const outputs = p.map(i => inputs[i]);
+        g.setInputs(inputs);
+        g.setOutputs(outputs);
+        return g;
+    }
+
+    /**
+     * Returns a graph corresponding to the identity map.
+     *
+     * This graph has a single vertex which is both an input and an output.
+     */
+    public static identity(): Graph {
+        const g = new Graph();
+        const v = g.addVertex(0, 0);
+        g.setInputs([v]);
+        g.setOutputs([v]);
+        return g;
+    }
 }
 
-/**
- * Returns a graph with a single hyperedge and the given number of inputs/outputs.
- *
- * @param value    The label for the hyperedge
- * @param arity    The number of input vertices connected to the source of the edge
- * @param coarity  The number of output vertices connected to the target of the edge
- * @param fg       Optional foreground color as a 6-digit RGB hex code
- * @param bg       Optional background color as a 6-digit RGB hex code
- */
-export function gen(value: string, arity: number, coarity: number, fg: string = '', bg: string = ''): Graph {
-    const g = new Graph();
-    const inputs = Array.from({ length: arity }, (_, i) => g.addVertex(-1.5, i - (arity - 1) / 2));
-    const outputs = Array.from({ length: coarity }, (_, i) => g.addVertex(1.5, i - (coarity - 1) / 2));
-    g.addEdge(inputs, outputs, value, 0, 0, fg, bg);
-    g.setInputs(inputs);
-    g.setOutputs(outputs);
-    return g;
-}
-
-/**
- * Returns a graph corresponding to the given permutation.
- *
- * The permutation is given as a list [x0,..,x(n-1)], interpreted as { x0 -> 0, x1 -> 1, ..., x(n-1) -> n-1 }.
- * Input xj is mapped to the same vertex as output j.
- *
- * @param p A permutation as an n-element list of integers from 0 to n-1
- */
-export function perm(p: number[]): Graph {
-    const g = new Graph();
-    const size = p.length;
-    const inputs = Array.from({ length: size }, (_, i) => g.addVertex(0, i - (size - 1) / 2));
-    const outputs = p.map(i => inputs[i]);
-    g.setInputs(inputs);
-    g.setOutputs(outputs);
-    return g;
-}
-
-/**
- * Returns a graph corresponding to the identity map.
- *
- * This graph has a single vertex which is both an input and an output.
- */
-export function identity(): Graph {
-    const g = new Graph();
-    const v = g.addVertex(0, 0);
-    g.setInputs([v]);
-    g.setOutputs([v]);
-    return g;
-}
 
 /** Load a graph from a JSON string */
 export function graphFromJson(jsonString: string): Graph {
