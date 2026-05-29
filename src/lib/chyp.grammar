@@ -13,45 +13,45 @@ statement {
 }
 
 Import {
-  kw<"import"> Identifier (kw<"as"> Var)?
-  ("(" (ImportLet ("," ImportLet)*)? ")")?
+  kw<"import"> Identifier (kw<"as"> Identifier)?
+  ("(" (ImportLet (Comma ImportLet)*)? ")")?
 }
 
 Gen {
-  kw<"gen"> Var ":" Nat "->" Nat GenColor?
+  kw<"gen"> Identifier Colon Nat Arrow Nat GenColor?
 }
 
 Let {
-  kw<"let"> Var "=" Term
+  kw<"let"> Identifier Eq Term
 }
 
 Def {
-  kw<"def"> Var "=" Term GenColor?
+  kw<"def"> Identifier Eq Term GenColor?
 }
 
 Rule {
-  kw<"rule"> Var ":" Term "=" Term
+  kw<"rule"> Identifier Colon Term Eq Term
 }
 
 Rewrite {
-  kw<"rewrite"> Var ":" Term RewritePart*
+  kw<"rewrite"> Identifier Colon Term RewritePart*
 }
 
 Show {
   kw<"show"> RuleRef
 }
 
-ImportLet { Var "=" Term }
+ImportLet { Identifier Eq Term }
 
 GenColor { HexColor HexColor? }
 
-RewritePart { "=" TermHole (kw<"by"> Tactic)? }
+RewritePart { Eq TermHole (kw<"by"> Tactic)? }
 
-TermHole { "?" | Term }
+TermHole { Question | Term }
 
-Term { ParTerm (";" ParTerm)* }
+Term { ParTerm (Semicolon ParTerm)* }
 
-ParTerm { atomicTerm ("*" atomicTerm)* }
+ParTerm { atomicTerm (Star atomicTerm)* }
 
 atomicTerm {
   "(" Term ")" |
@@ -61,15 +61,14 @@ atomicTerm {
   TermRef
 }
 
-Perm { kw<"sw"> "[" Nat ("," Nat)* "]" }
+Perm { kw<"sw"> "[" Nat (Comma Nat)* "]" }
 
 Tactic {
-  (kw<"rule"> | "-"? Identifier) "(" (TacticArg ("," TacticArg)*)? ")"
+  (kw<"rule"> | Minus? Identifier) "(" (TacticArg (Comma TacticArg)*)? ")"
 }
 
-TacticArg { ("+" | "-")? Identifier }
+TacticArg { (Plus | Minus)? Identifier }
 
-Var { Identifier }
 TermRef { Identifier }
 RuleRef { Identifier }
 
@@ -83,4 +82,13 @@ kw<term> { @specialize[@name={term}]<Identifier, term> }
   Nat { $[0-9]+ }
   HexColor { '"' $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] '"' }
   Identifier { $[a-zA-Z_] $[a-zA-Z0-9_.]* }
+  Colon { ":" }
+  Arrow { "->" }
+  Eq { "=" }
+  Plus { "+" }
+  Minus { "-" }
+  Semicolon { ";" }
+  Star { "*" }
+  Comma { "," }
+  Question { "?" }
 }

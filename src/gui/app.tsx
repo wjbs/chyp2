@@ -2,6 +2,8 @@ import { Editor } from "./Editor";
 import { GraphView } from "./GraphView";
 import Splitpane from "./Splitpane";
 import { parser } from "../lib/parser";
+import { ChypReader, logTree } from "../lib/reader";
+import { State } from "../lib/state";
 
 export function App() {
   const initialContent = `# Chyp example
@@ -15,8 +17,10 @@ def c3 = c ; c * id
 
 rule m_assoc : m * (m * id) = (m * id) * m
 `;
-  const parsed = parser.parse(initialContent);
-  console.log(parsed);
+  const state = new State();
+  const reader = new ChypReader(state);
+  logTree(parser.parse(initialContent));
+  reader.readSource(initialContent, parser.parse(initialContent));
   return (
     <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>
       <GraphView />

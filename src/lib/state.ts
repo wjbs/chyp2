@@ -10,3 +10,7 @@ export class Part {
     start: number = 0;
     end: number = 0;
 }
+
+export class State {
+    parts: Part[] = [];
+}

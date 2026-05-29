@@ -19,7 +19,7 @@ const chypLanguage = LRLanguage.define({
                 by: tags.keyword,
                 HexColor: tags.string,
                 Comment: tags.lineComment,
-                "( )": tags.paren
+                "( )": tags.paren,
             }),
             indentNodeProp.add({
                 Application: context => context.column(context.node.from) + context.unit
