@@ -13,9 +13,11 @@ gen u : 0 -> 1
 gen v : 1 -> 0
 
 let m3 = m * id ; m
+let m_sw = sw[1, 0] ; m
+let nest = (u ; v) * (u ; v)
 def c3 = c ; c * id
 
-rule m_assoc : m * (m * id) = (m * id) * m
+rule m_assoc : m * id ; m = id * m ; m
 `;
   const state = new State();
   const reader = new ChypReader(state);
