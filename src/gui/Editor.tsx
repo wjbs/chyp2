@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { EditorView, basicSetup } from 'codemirror';
-import { EditorState } from '@codemirror/state';
+import { EditorState, StateEffect, StateField, RangeSetBuilder } from '@codemirror/state';
+import { Decoration, keymap } from '@codemirror/view';
+import type { DecorationSet } from '@codemirror/view';
 import { parser } from "../lib/parser"
 import { foldNodeProp, foldInside, indentNodeProp, LRLanguage, LanguageSupport } from "@codemirror/language"
 import { styleTags, tags } from "@lezer/highlight"
@@ -35,20 +37,84 @@ const chypLanguage = LRLanguage.define({
     }
 });
 
+const setPartsEffect = StateEffect.define<{ parts: Part[]; currentPart: number }>();
+
+const partsField = StateField.define<DecorationSet>({
+    create() {
+        return Decoration.none;
+    },
+    update(decorations, tr) {
+        for (const effect of tr.effects) {
+            if (effect.is(setPartsEffect)) {
+                const builder = new RangeSetBuilder<Decoration>();
+                effect.value.parts.forEach((part, i) => {
+                    const cls = i === effect.value.currentPart ? 'cm-part cm-part-active' : 'cm-part';
+                    builder.add(part.start, part.end, Decoration.mark({ class: cls }));
+                });
+                return builder.finish();
+            }
+        }
+        return decorations.map(tr.changes);
+    },
+    provide: f => EditorView.decorations.from(f),
+});
+
+const partHighlightTheme = EditorView.baseTheme({
+    '.cm-part': { backgroundColor: '#f5f5ff' },
+    '.cm-part-active': { backgroundColor: '#dde8ff' },
+});
+
+const disableActiveLineTheme = EditorView.theme({
+    '.cm-activeLine': { backgroundColor: 'transparent' },
+});
+
 interface EditorProps {
     state: State;
+    currentPart: number;
     initialContent?: string;
     onChange?: (content: string | null, pos: number | null) => void;
 }
 
-export function Editor({ state, initialContent = '', onChange }: EditorProps) {
+export function Editor({ state, currentPart, initialContent = '', onChange }: EditorProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const viewRef = useRef<EditorView | null>(null);
     const onChangeRef = useRef(onChange);
+    const stateRef = useRef(state);
+    const currentPartRef = useRef(currentPart);
     useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+    useEffect(() => { stateRef.current = state; }, [state]);
+    useEffect(() => { currentPartRef.current = currentPart; }, [currentPart]);
 
     useEffect(() => {
         if (!containerRef.current) return;
-        const extensions = [basicSetup, new LanguageSupport(chypLanguage)];
+        const partNavKeymap = keymap.of([
+            {
+                key: 'Ctrl-j',
+                run(view) {
+                    const parts = stateRef.current.parts;
+                    const next = currentPartRef.current + 1;
+                    if (next < parts.length) {
+                        view.dispatch({ selection: { anchor: parts[next].end } });
+                        view.focus();
+                    }
+                    return true;
+                }
+            },
+            {
+                key: 'Ctrl-k',
+                run(view) {
+                    const parts = stateRef.current.parts;
+                    const prev = currentPartRef.current - 1;
+                    if (prev >= 0) {
+                        view.dispatch({ selection: { anchor: parts[prev].end } });
+                        view.focus();
+                    }
+                    return true;
+                }
+            },
+        ]);
+
+        const extensions = [partNavKeymap, basicSetup, new LanguageSupport(chypLanguage), partsField, partHighlightTheme, disableActiveLineTheme];
 
         if (onChange) {
             extensions.push(
@@ -69,10 +135,18 @@ export function Editor({ state, initialContent = '', onChange }: EditorProps) {
             parent: containerRef.current,
         });
 
+        viewRef.current = view;
+
         return () => {
+            viewRef.current = null;
             view.destroy();
         };
     }, []);
+
+    useEffect(() => {
+        if (!viewRef.current) return;
+        viewRef.current.dispatch({ effects: setPartsEffect.of({ parts: state.parts, currentPart }) });
+    }, [state, currentPart]);
 
     return (
         <div className="editor-panel">

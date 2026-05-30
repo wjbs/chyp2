@@ -22,6 +22,7 @@ def c3 = c ; c * id
 rule m_assoc : m * id ; m = id * m ; m
 `;
   const [state, setState] = useState<State>(new State());
+  const [currentPart, setCurrentPart] = useState<number>(-1);
 
   const onChange = (content: string | null, pos: number | null) => {
     let newState = new State();
@@ -36,8 +37,9 @@ rule m_assoc : m * id ; m = id * m ; m
     }
 
     if (pos !== null) {
-      const part = newState.getPartAt(pos);
-      console.log(`Selected part for pos ${pos} (${newState.parts.length} parts):`, part);
+      const i = newState.getPartIndexAt(pos);
+      // console.log(`Selected part for pos ${pos}:`, i);
+      setCurrentPart(i);
     }
   }
 
@@ -51,6 +53,7 @@ rule m_assoc : m * id ; m = id * m ; m
     <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>
       <GraphView />
       <Editor state={state}
+        currentPart={currentPart}
         initialContent={initialContent}
         onChange={onChange}
       />
