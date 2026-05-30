@@ -12,7 +12,7 @@ export function EdgeView({ graph, edge }: EdgeViewProps) {
     function pathFor(v: number, i: number, src: boolean): string {
         const vd = graph.vertexData(v);
         const num = src ? edgeData.s.length : edgeData.t.length;
-        const xShift = src ? -0.5 : 0.5;
+        const xShift = src ? -0.4 : 0.4;
         const yShift = num <= 1 ? 0 : (i / (num - 1)) - 0.5;
         const p1x = vd.x * SCALE;
         const p1y = vd.y * SCALE;
@@ -27,10 +27,10 @@ export function EdgeView({ graph, edge }: EdgeViewProps) {
 
     return (<g>
         <rect
-            x={(edgeData.x - 0.5) * SCALE}
-            y={(edgeData.y - edgeData.boxSize() * 0.5) * SCALE}
-            width={1.0 * SCALE}
-            height={edgeData.boxSize() * SCALE}
+            x={(edgeData.x - 0.4) * SCALE}
+            y={(edgeData.y - edgeData.boxSize() * 0.5 + 0.1) * SCALE}
+            width={0.8 * SCALE}
+            height={(edgeData.boxSize() - 0.2) * SCALE}
             fill="#ccccff"
             stroke="black"
             stroke-width={0.01 * SCALE} />

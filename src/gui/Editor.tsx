@@ -6,7 +6,7 @@ import type { DecorationSet } from '@codemirror/view';
 import { parser } from "../lib/parser"
 import { foldNodeProp, foldInside, indentNodeProp, LRLanguage, LanguageSupport } from "@codemirror/language"
 import { styleTags, tags } from "@lezer/highlight"
-import type { State, Part } from '../lib/state';
+import { State, Part } from '../lib/state';
 
 const chypLanguage = LRLanguage.define({
     parser: parser.configure({
@@ -48,7 +48,12 @@ const partsField = StateField.define<DecorationSet>({
             if (effect.is(setPartsEffect)) {
                 const builder = new RangeSetBuilder<Decoration>();
                 effect.value.parts.forEach((part, i) => {
-                    const cls = i === effect.value.currentPart ? 'cm-part cm-part-active' : 'cm-part';
+                    const active = i === effect.value.currentPart;
+                    const status =
+                        part.status === Part.CHECKING ? 'checking' :
+                            part.status === Part.VALID ? 'valid' :
+                                part.status === Part.INVALID ? 'invalid' : 'unchecked';
+                    const cls = active ? `cm-part-${status}-active` : `cm-part-${status}`;
                     builder.add(part.start, part.end, Decoration.mark({ class: cls }));
                 });
                 return builder.finish();
@@ -60,8 +65,14 @@ const partsField = StateField.define<DecorationSet>({
 });
 
 const partHighlightTheme = EditorView.baseTheme({
-    '.cm-part': { backgroundColor: '#f5f5ff' },
-    '.cm-part-active': { backgroundColor: '#dde8ff' },
+    '.cm-part-unchecked': { backgroundColor: '#f5f5ff' },
+    '.cm-part-unchecked-active': { backgroundColor: '#dde8ff' },
+    '.cm-part-checking': { backgroundColor: '#ffeeff' },
+    '.cm-part-checking-active': { backgroundColor: '#ffccff' },
+    '.cm-part-valid': { backgroundColor: '#eeffee' },
+    '.cm-part-valid-active': { backgroundColor: '#ccffcc' },
+    '.cm-part-invalid': { backgroundColor: '#ffeeee' },
+    '.cm-part-invalid-active': { backgroundColor: '#ffcccc' },
 });
 
 const disableActiveLineTheme = EditorView.theme({

@@ -457,6 +457,50 @@ describe('Graph - tensor', () => {
         a.tensor(b);
         assert.equal(a.numVertices(), origAVerts);
     });
+
+    it('tensor() inputs = sum of individual inputs for various arities', () => {
+        const cases: [number, number, number, number][] = [
+            [0, 1, 2, 3],
+            [3, 0, 1, 2],
+            [2, 3, 4, 1],
+            [0, 0, 0, 0],
+        ];
+        for (const [aIn, aOut, bIn, bOut] of cases) {
+            const ab = Graph.gen('a', aIn, aOut).tensor(Graph.gen('b', bIn, bOut));
+            assert.equal(ab.inputs().length, aIn + bIn,
+                `inputs: gen(${aIn},${aOut}) ⊗ gen(${bIn},${bOut})`);
+            assert.equal(ab.outputs().length, aOut + bOut,
+                `outputs: gen(${aIn},${aOut}) ⊗ gen(${bIn},${bOut})`);
+        }
+    });
+
+    it('tensor() with identity preserves arity', () => {
+        const f = Graph.gen('f', 2, 3);
+        const fi = f.tensor(Graph.identity());
+        assert.equal(fi.inputs().length, 3);
+        assert.equal(fi.outputs().length, 4);
+        const ig = Graph.identity().tensor(f);
+        assert.equal(ig.inputs().length, 3);
+        assert.equal(ig.outputs().length, 4);
+    });
+
+    it('tensor() is associative on input/output counts', () => {
+        const a = Graph.gen('a', 1, 2);
+        const b = Graph.gen('b', 3, 1);
+        const c = Graph.gen('c', 0, 2);
+        const left = a.tensor(b).tensor(c);
+        const right = a.tensor(b.tensor(c));
+        assert.equal(left.inputs().length, right.inputs().length);
+        assert.equal(left.outputs().length, right.outputs().length);
+    });
+
+    it('tensor() of zero-arity graphs stacks correctly', () => {
+        const a = Graph.gen('a', 0, 2);  // 0 → 2
+        const b = Graph.gen('b', 3, 0);  // 3 → 0
+        const ab = a.tensor(b);
+        assert.equal(ab.inputs().length, 3);
+        assert.equal(ab.outputs().length, 2);
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -485,6 +529,49 @@ describe('Graph - compose', () => {
         const result = Graph.identity().compose(f); // id ; f ≈ f up to vertex names
         assert.equal(result.inputs().length, f.inputs().length);
         assert.equal(result.outputs().length, f.outputs().length);
+    });
+
+    it('Graph.identity() is right-neutral for compose', () => {
+        const f = Graph.gen('f', 2, 3);
+        const result = f.compose(Graph.identity().tensor(Graph.identity()).tensor(Graph.identity()));
+        assert.equal(result.inputs().length, f.inputs().length);
+        assert.equal(result.outputs().length, f.outputs().length);
+    });
+
+    it('compose() inputs = first.inputs, outputs = second.outputs for various arities', () => {
+        const cases: [number, number][] = [
+            [1, 1],
+            [3, 2],
+            [0, 3],
+            [4, 0],
+        ];
+        for (const [fIn, gOut] of cases) {
+            const shared = 2;
+            const f = Graph.gen('f', fIn, shared);
+            const g2 = Graph.gen('g', shared, gOut);
+            const fg = f.compose(g2);
+            assert.equal(fg.inputs().length, fIn,
+                `inputs: gen(${fIn},${shared}) ; gen(${shared},${gOut})`);
+            assert.equal(fg.outputs().length, gOut,
+                `outputs: gen(${fIn},${shared}) ; gen(${shared},${gOut})`);
+        }
+    });
+
+    it('compose() chains of three graphs has correct outer arity', () => {
+        const f = Graph.gen('f', 2, 3);
+        const g = Graph.gen('g', 3, 1);
+        const h = Graph.gen('h', 1, 4);
+        const fgh = f.compose(g).compose(h);
+        assert.equal(fgh.inputs().length, 2);
+        assert.equal(fgh.outputs().length, 4);
+    });
+
+    it('compose() of permutation with its inverse yields identity arity', () => {
+        // swap ; swap = id on 2 wires
+        const swap = Graph.perm([1, 0]);
+        const result = swap.compose(Graph.perm([1, 0]));
+        assert.equal(result.inputs().length, 2);
+        assert.equal(result.outputs().length, 2);
     });
 });
 

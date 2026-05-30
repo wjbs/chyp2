@@ -1,6 +1,5 @@
 import { Tree, TreeCursor } from "@lezer/common";
-import { Graph } from "./graph";
-import { GraphPart, type State } from "./state";
+import { GenPart, GraphPart, LetPart, State } from "./state";
 import { Term, Atom, Par, Seq, Perm } from "./term";
 
 export function logTree(parseTree: Tree) {
@@ -66,7 +65,7 @@ export class ChypReader {
 
     readGen(): void {
         if (!this.c) return;
-        const part = new GraphPart(this.c.node.from, this.c.node.to);
+        const part = new GenPart(this.c.node.from, this.c.node.to);
         this.c.firstChild(); // gen
         this.c.nextSibling(); // name
         const name = this.readIdent();
@@ -79,13 +78,16 @@ export class ChypReader {
         // TODO: colors
         this.c.parent();
 
-        part.lhs = Graph.gen(name, sourceArity, targetArity);
+        part.name = name;
+        part.inputArity = sourceArity;
+        part.outputArity = targetArity;
         this.state.addPart(part);
         console.log(`read gen: ${name} : ${sourceArity} -> ${targetArity}`);
     }
+
     readLet(): void {
         if (!this.c) return;
-        const part = new GraphPart(this.c.node.from, this.c.node.to);
+        const part = new LetPart(this.c.node.from, this.c.node.to);
         this.c.firstChild(); // let
         this.c.nextSibling(); // name
         const name = this.readIdent();
@@ -94,6 +96,8 @@ export class ChypReader {
         const t = this.readTerm();
         this.c.parent();
 
+        part.name = name;
+        part.term = t;
         this.state.addPart(part);
         console.log(`read let: ${name} = ${t.toString()}`);
     }

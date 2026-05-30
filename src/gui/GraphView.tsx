@@ -1,28 +1,49 @@
 import { useRef } from "preact/hooks";
 import { Graph } from "../lib/graph";
-import { convexLayout } from "../lib/layout";
 import { EdgeView } from "./EdgeView";
 import { SCALE } from "../lib/util";
 
 interface GraphViewProps {
+    graph: Graph | null;
 }
 
-export function GraphView({ }: GraphViewProps) {
+export function GraphView({ graph }: GraphViewProps) {
     const svgRef = useRef<SVGSVGElement>(null);
-    // const [scale, setScale] = useState(100.0);
-    // function toScreen(p: number[]): number[] {
-    //     const origin = [svgRef.current!.clientWidth / 2, svgRef.current!.clientHeight / 2];
-    //     return [p[0] * scale + origin[0], p[1] * scale + origin[1]];
-    // }
-    const g = Graph.gen("f", 2, 1);
-    convexLayout(g);
-    const bbox = g.boundingBox();
+    if (!graph) {
+        return <div className="graph-panel" />;
+    }
+    const bbox = graph.boundingBox();
     const viewBox = `${bbox[0] * SCALE} ${bbox[2] * SCALE} ${(bbox[1] - bbox[0]) * SCALE} ${(bbox[3] - bbox[2]) * SCALE}`;
     return (
         <div className="graph-panel">
             <svg ref={svgRef} className="graph-svg" viewBox={viewBox}>
-                {[...g.edges()].map(e => <EdgeView key={e} graph={g} edge={e} />)}
+                {[...graph.edges()].map(e => <EdgeView key={e} graph={graph} edge={e} />)}
             </svg>
+        </div>
+    );
+}
+
+interface GraphPanelsProps {
+    lhs: Graph | null;
+    rhs: Graph | null;
+}
+
+export function GraphPanels({ lhs, rhs }: GraphPanelsProps) {
+    if (rhs === null) {
+        return (
+            <div style={{ display: 'flex', width: '100%', height: '100%', justifyContent: 'center' }}>
+                <GraphView graph={lhs} />
+            </div>
+        );
+    }
+    return (
+        <div style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%' }}>
+            <div style={{ flex: 1, borderRight: '1px solid #ccc' }}>
+                <GraphView graph={lhs} />
+            </div>
+            <div style={{ flex: 1 }}>
+                <GraphView graph={rhs} />
+            </div>
         </div>
     );
 }

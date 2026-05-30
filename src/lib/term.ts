@@ -13,9 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Graph } from './graph.ts';
+import { Graph, GraphError } from './graph.ts';
 
-export class Term { }
+export class Term {
+    toGraph(_defs: { [name: string]: Graph }): Graph {
+        return new Graph();
+    }
+}
 
 export class Atom extends Term {
     ident: string;
@@ -27,6 +31,18 @@ export class Atom extends Term {
 
     toString(): string {
         return this.ident;
+    }
+
+    toGraph(defs: { [name: string]: Graph }): Graph {
+        if (this.ident === 'id') {
+            return Graph.identity();
+        } else if (this.ident === 'id0') {
+            return new Graph();
+        } else if (this.ident in defs) {
+            return defs[this.ident].copy();
+        } else {
+            throw new GraphError(`Can't find identifier: ${this.ident}`);
+        }
     }
 }
 
@@ -40,6 +56,10 @@ export class Perm extends Term {
 
     toString(): string {
         return 'sw[' + this.perm.join(', ') + ']';
+    }
+
+    toGraph(_defs: { [name: string]: Graph }): Graph {
+        return Graph.perm(this.perm);
     }
 }
 
@@ -60,6 +80,15 @@ export class Seq extends Term {
             }
         }).join(' ; ');
     }
+
+    toGraph(defs: { [name: string]: Graph }): Graph {
+        if (this.children.length === 0) {
+            return new Graph();
+        } else {
+            const [first, ...rest] = this.children;
+            return rest.reduce((g, c) => g.compose(c.toGraph(defs)), first.toGraph(defs));
+        }
+    }
 }
 
 export class Par extends Term {
@@ -78,6 +107,14 @@ export class Par extends Term {
                 return c.toString();
             }
         }).join(' * ');
+    }
+
+    toGraph(defs: { [name: string]: Graph }): Graph {
+        if (this.children.length === 0) {
+            return new Graph();
+        } else {
+            return this.children.reduce((g, c) => g.tensor(c.toGraph(defs)), new Graph());
+        }
     }
 }
 

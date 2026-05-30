@@ -1,11 +1,11 @@
 import { useState, useEffect } from "preact/hooks";
 
 import { Editor } from "./Editor";
-import { GraphView } from "./GraphView";
+import { GraphPanels } from "./GraphView";
 import Splitpane from "./Splitpane";
 import { parser } from "../lib/parser";
 import { ChypReader, logTree } from "../lib/reader";
-import { State, Part } from "../lib/state";
+import { State, GraphPart } from "../lib/state";
 
 export function App() {
   const initialContent = `# Chyp example
@@ -24,6 +24,11 @@ rule m_assoc : m * id ; m = id * m ; m
   const [state, setState] = useState<State>(new State());
   const [currentPart, setCurrentPart] = useState<number>(-1);
 
+  const currentGraphPart = (): GraphPart | null => {
+    const part = currentPart >= 0 ? state.parts[currentPart] : null;
+    return part instanceof GraphPart ? part : null;
+  };
+
   const onChange = (content: string | null, pos: number | null) => {
     let newState = new State();
     if (content !== null) {
@@ -31,6 +36,10 @@ rule m_assoc : m * id ; m = id * m ; m
       const parseTree = parser.parse(content);
       logTree(parseTree);
       reader.readSource(content, parseTree);
+
+      // TODO: should do this asynchronously
+      newState.evalAll();
+
       setState(newState);
     } else {
       newState = state;
@@ -51,7 +60,7 @@ rule m_assoc : m * id ; m = id * m ; m
 
   return (
     <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>
-      <GraphView />
+      <GraphPanels lhs={currentGraphPart()?.lhs ?? null} rhs={currentGraphPart()?.rhs ?? null} />
       <Editor state={state}
         currentPart={currentPart}
         initialContent={initialContent}
