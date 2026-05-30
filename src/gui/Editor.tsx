@@ -4,6 +4,7 @@ import { EditorState } from '@codemirror/state';
 import { parser } from "../lib/parser"
 import { foldNodeProp, foldInside, indentNodeProp, LRLanguage, LanguageSupport } from "@codemirror/language"
 import { styleTags, tags } from "@lezer/highlight"
+import type { State, Part } from '../lib/state';
 
 const chypLanguage = LRLanguage.define({
     parser: parser.configure({
@@ -35,24 +36,27 @@ const chypLanguage = LRLanguage.define({
 });
 
 interface EditorProps {
+    state: State;
     initialContent?: string;
-    onChange?: (content: string) => void;
+    onChange?: (content: string | null, pos: number | null) => void;
 }
 
-export function Editor({ initialContent = '', onChange }: EditorProps) {
+export function Editor({ state, initialContent = '', onChange }: EditorProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const onChangeRef = useRef(onChange);
+    useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
     useEffect(() => {
         if (!containerRef.current) return;
-
         const extensions = [basicSetup, new LanguageSupport(chypLanguage)];
 
         if (onChange) {
             extensions.push(
                 EditorView.updateListener.of((update) => {
-                    if (update.docChanged) {
-                        onChange(update.state.doc.toString());
-                    }
+                    onChangeRef.current?.(
+                        update.docChanged ? update.state.doc.toString() : null,
+                        update.selectionSet ? update.state.selection.main.head : null
+                    );
                 })
             );
         }

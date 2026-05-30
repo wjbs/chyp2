@@ -39,12 +39,17 @@ export class State {
         this.parts.push(part);
     }
 
-    getPartAt(pos: number): Part | null {
-        for (const part of this.parts) {
-            if (part.start <= pos && pos < part.end) {
-                return part;
+    getPartIndexAt(pos: number): number {
+        for (const [index, part] of this.parts.entries()) {
+            if (part.start <= pos && pos <= part.end) {
+                return index;
             }
         }
-        return null;
+        return -1;
+    }
+
+    getPartAt(pos: number): Part | null {
+        const index = this.getPartIndexAt(pos);
+        return index !== -1 ? this.parts[index] : null;
     }
 }
