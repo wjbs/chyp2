@@ -39,6 +39,7 @@ rule m_assoc : m * id ; m = id * m ; m
 
       // TODO: should do this asynchronously
       newState.evalAll();
+      newState.logErrors(content);
 
       setState(newState);
     } else {
