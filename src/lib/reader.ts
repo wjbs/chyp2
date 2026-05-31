@@ -1,5 +1,5 @@
 import { Tree, TreeCursor } from "@lezer/common";
-import { GenPart, GraphPart, LetPart, State } from "./state";
+import { GenPart, LetPart, DefPart, RulePart, State } from "./state";
 import { Term, Atom, Par, Seq, Perm } from "./term";
 
 export function logTree(parseTree: Tree) {
@@ -68,21 +68,18 @@ export class ChypReader {
         const part = new GenPart(this.c.node.from, this.c.node.to);
         this.c.firstChild(); // gen
         this.c.nextSibling(); // name
-        const name = this.readIdent();
+        part.name = this.readIdent();
         this.c.nextSibling(); // colon
         this.c.nextSibling(); // source arity
-        const sourceArity = this.readNat();
+        part.inputArity = this.readNat();
         this.c.nextSibling(); // arrow
         this.c.nextSibling(); // target arity
-        const targetArity = this.readNat();
+        part.outputArity = this.readNat();
         // TODO: colors
         this.c.parent();
 
-        part.name = name;
-        part.inputArity = sourceArity;
-        part.outputArity = targetArity;
         this.state.addPart(part);
-        console.log(`read gen: ${name} : ${sourceArity} -> ${targetArity}`);
+        // console.log(`read gen: ${part.name} : ${part.inputArity} -> ${part.outputArity}`);
     }
 
     readLet(): void {
@@ -90,52 +87,50 @@ export class ChypReader {
         const part = new LetPart(this.c.node.from, this.c.node.to);
         this.c.firstChild(); // let
         this.c.nextSibling(); // name
-        const name = this.readIdent();
+        part.name = this.readIdent();
         this.c.nextSibling(); // eq
         this.c.nextSibling(); // term
-        const t = this.readTerm();
+        part.term = this.readTerm();
         this.c.parent();
 
-        part.name = name;
-        part.term = t;
         this.state.addPart(part);
-        console.log(`read let: ${name} = ${t.toString()}`);
+        // console.log(`read let: ${part.name} = ${part.term.toString()}`);
     }
 
     readDef(): void {
         if (!this.c) return;
-        const part = new GraphPart(this.c.node.from, this.c.node.to);
+        const part = new DefPart(this.c.node.from, this.c.node.to);
 
         this.c.firstChild(); // def
         this.c.nextSibling(); // name
-        const name = this.readIdent();
+        part.name = this.readIdent();
         this.c.nextSibling(); // eq
         this.c.nextSibling(); // term
-        const t = this.readTerm();
+        part.term = this.readTerm();
         // TODO: colors
         this.c.parent();
 
         this.state.addPart(part);
-        console.log(`read def: ${name} = ${t.toString()}`);
+        // console.log(`read def: ${part.name} = ${part.term.toString()}`);
     }
 
     readRule(): void {
         if (!this.c) return;
-        const part = new GraphPart(this.c.node.from, this.c.node.to);
+        const part = new RulePart(this.c.node.from, this.c.node.to);
 
         this.c.firstChild(); // rule
         this.c.nextSibling(); // name
-        const name = this.readIdent();
+        part.name = this.readIdent();
         this.c.nextSibling(); // colon
         this.c.nextSibling(); // lhs term
-        const lhs = this.readTerm();
+        part.lhsTerm = this.readTerm();
         this.c.nextSibling(); // eq
         this.c.nextSibling(); // rhs term
-        const rhs = this.readTerm();
+        part.rhsTerm = this.readTerm();
         this.c.parent();
 
         this.state.addPart(part);
-        console.log(`read rule: ${name} : ${lhs.toString()} = ${rhs.toString()}`);
+        // console.log(`read rule: ${part.name} : ${part.lhsTerm.toString()} = ${part.rhsTerm.toString()}`);
     }
 
     readTerm(): Term {

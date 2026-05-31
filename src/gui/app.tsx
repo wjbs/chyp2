@@ -34,7 +34,7 @@ rule m_assoc : m * id ; m = id * m ; m
     if (content !== null) {
       const reader = new ChypReader(newState);
       const parseTree = parser.parse(content);
-      logTree(parseTree);
+      // logTree(parseTree);
       reader.readSource(content, parseTree);
 
       // TODO: should do this asynchronously

@@ -1,5 +1,6 @@
 import { Graph } from "./graph";
 import { convexLayout } from "./layout";
+import { Rule } from "./rule";
 import { Term } from "./term";
 import { lineNumberForPosition } from "./util";
 
@@ -52,9 +53,9 @@ export class GenPart extends GraphPart {
     public eval(): void {
         if (!this.state) return;
 
-        if (this.state.graphs[this.name]) {
+        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
             this.status = Part.INVALID;
-            throw new EvalError(`Generator name "${this.name}" already exists.`);
+            throw new EvalError(`Name "${this.name}" already exists.`);
         } else {
             this.lhs = Graph.gen(this.name, this.inputArity, this.outputArity);
             this.state.graphs[this.name] = this.lhs;
@@ -70,9 +71,9 @@ export class LetPart extends GraphPart {
     public eval(): void {
         if (!this.state) return;
 
-        if (this.state.graphs[this.name]) {
+        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
             this.status = Part.INVALID;
-            throw new EvalError(`Graph name "${this.name}" already exists.`, this.index);
+            throw new EvalError(`Name "${this.name}" already exists.`, this.index);
         } else {
             try {
                 this.lhs = this.term.toGraph(this.state.graphs);
@@ -80,7 +81,72 @@ export class LetPart extends GraphPart {
                 this.status = Part.VALID;
             } catch (e) {
                 this.status = Part.INVALID;
-                throw new EvalError(`Error evaluating term in let expression "${this.name}": ${e}`, this.index);
+                throw new EvalError(`Error in let expression "${this.name}": ${e}`, this.index);
+            }
+        }
+    }
+}
+
+export class DefPart extends GraphPart {
+    name: string = '';
+    term: Term = new Term();
+
+    public eval(): void {
+        if (!this.state) return;
+
+        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
+            this.status = Part.INVALID;
+            throw new EvalError(`Name "${this.name}" already exists.`, this.index);
+        } else if (this.state.graphs[this.name + "_def"] || this.state.rules[this.name + "_def"]) {
+            this.status = Part.INVALID;
+            throw new EvalError(`Name "${this.name}_def" (implicitly defined here) already exists.`, this.index);
+        } else {
+            try {
+                this.lhs = this.term.toGraph(this.state.graphs);
+                const newGen = Graph.gen(this.name, this.lhs.inputs().length, this.lhs.outputs().length);
+                const rule = new Rule(
+                    newGen,
+                    this.lhs,
+                    this.name + "_def"
+                );
+                this.state.graphs[this.name] = newGen;
+                this.state.rules[rule.name] = rule;
+
+                this.status = Part.VALID;
+            } catch (e) {
+                this.status = Part.INVALID;
+                throw new EvalError(`Error in def expression "${this.name}": ${e}`, this.index);
+            }
+        }
+    }
+}
+
+export class RulePart extends GraphPart {
+    name: string = '';
+    lhsTerm: Term = new Term();
+    rhsTerm: Term = new Term();
+
+    public eval(): void {
+        if (!this.state) return;
+
+        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
+            this.status = Part.INVALID;
+            throw new EvalError(`Name "${this.name}" already exists.`, this.index);
+        } else {
+            try {
+                this.lhs = this.lhsTerm.toGraph(this.state.graphs);
+                this.rhs = this.rhsTerm.toGraph(this.state.graphs);
+                const rule = new Rule(
+                    this.lhs,
+                    this.rhs,
+                    this.name
+                );
+                this.state.rules[rule.name] = rule;
+
+                this.status = Part.VALID;
+            } catch (e) {
+                this.status = Part.INVALID;
+                throw new EvalError(`Error in rule expression "${this.name}": ${e}`, this.index);
             }
         }
     }
@@ -89,6 +155,7 @@ export class LetPart extends GraphPart {
 export class State {
     parts: Part[] = [];
     graphs: { [name: string]: Graph } = {};
+    rules: { [name: string]: Rule } = {};
     errors: EvalError[] = [];
 
     addPart(part: Part): void {
