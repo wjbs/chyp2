@@ -20,6 +20,11 @@ let nest = (u ; v) * (u ; v)
 def c3 = c ; c * id
 
 rule m_assoc : m * id ; m = id * m ; m
+
+rewrite m_assoc3 : m * id * id ; m * id ; m
+  = id * m * id ; m * id ; m by m_assoc
+  = id * m * id ; id * m ; m by m_assoc
+  = id * id * m ; id * m ; m by m_assoc
 `;
   const [state, setState] = useState<State>(new State());
   const [currentPart, setCurrentPart] = useState<number>(-1);
@@ -34,7 +39,7 @@ rule m_assoc : m * id ; m = id * m ; m
     if (content !== null) {
       const reader = new ChypReader(newState);
       const parseTree = parser.parse(content);
-      // logTree(parseTree);
+      logTree(parseTree);
       reader.readSource(content, parseTree);
 
       // TODO: should do this asynchronously
@@ -48,7 +53,6 @@ rule m_assoc : m * id ; m = id * m ; m
 
     if (pos !== null) {
       const i = newState.getPartIndexAt(pos);
-      // console.log(`Selected part for pos ${pos}:`, i);
       setCurrentPart(i);
     }
   }
@@ -56,8 +60,6 @@ rule m_assoc : m * id ; m = id * m ; m
   useEffect(() => {
     onChange(initialContent, 0);
   }, []);
-
-  // const [highlightPart, setHighlightPart] = useState<Part | null>(null);
 
   return (
     <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>

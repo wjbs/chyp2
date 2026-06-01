@@ -16,7 +16,7 @@
 import { Graph, GraphError } from './graph.ts';
 
 export class Term {
-    toGraph(_defs: { [name: string]: Graph }): Graph {
+    toGraph(_defs: (name: string) => Graph | null): Graph {
         return new Graph();
     }
 }
@@ -33,15 +33,15 @@ export class Atom extends Term {
         return this.ident;
     }
 
-    toGraph(defs: { [name: string]: Graph }): Graph {
+    toGraph(defs: (name: string) => Graph | null): Graph {
         if (this.ident === 'id') {
             return Graph.identity();
         } else if (this.ident === 'id0') {
             return new Graph();
-        } else if (this.ident in defs) {
-            return defs[this.ident].copy();
         } else {
-            throw new GraphError(`Can't find identifier: ${this.ident}`);
+            const g = defs(this.ident);
+            if (g) return g.copy();
+            else throw new GraphError(`Can't find identifier: ${this.ident}`);
         }
     }
 }
@@ -58,7 +58,7 @@ export class Perm extends Term {
         return 'sw[' + this.perm.join(', ') + ']';
     }
 
-    toGraph(_defs: { [name: string]: Graph }): Graph {
+    toGraph(_defs: (name: string) => Graph | null): Graph {
         return Graph.perm(this.perm);
     }
 }
@@ -81,7 +81,7 @@ export class Seq extends Term {
         }).join(' ; ');
     }
 
-    toGraph(defs: { [name: string]: Graph }): Graph {
+    toGraph(defs: (name: string) => Graph | null): Graph {
         if (this.children.length === 0) {
             return new Graph();
         } else {
@@ -109,7 +109,7 @@ export class Par extends Term {
         }).join(' * ');
     }
 
-    toGraph(defs: { [name: string]: Graph }): Graph {
+    toGraph(defs: (name: string) => Graph | null): Graph {
         if (this.children.length === 0) {
             return new Graph();
         } else {

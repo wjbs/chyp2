@@ -51,14 +51,15 @@ export class GenPart extends GraphPart {
     outputArity: number = 0;
 
     public eval(): void {
-        if (!this.state) return;
+        const state = this.state;
+        if (!state) return;
 
-        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
+        if (state.symbolDefined(this.name, this.index)) {
             this.status = Part.INVALID;
-            throw new EvalError(`Name "${this.name}" already exists.`);
+            throw new EvalError(`Name "${this.name}" already exists.`, this.index);
         } else {
             this.lhs = Graph.gen(this.name, this.inputArity, this.outputArity);
-            this.state.graphs[this.name] = this.lhs;
+            state.setGraph(this.name, this.lhs, this.index);
             this.status = Part.VALID;
         }
     }
@@ -69,15 +70,16 @@ export class LetPart extends GraphPart {
     term: Term = new Term();
 
     public eval(): void {
-        if (!this.state) return;
+        const state = this.state;
+        if (!state) return;
 
-        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
+        if (state.symbolDefined(this.name, this.index)) {
             this.status = Part.INVALID;
             throw new EvalError(`Name "${this.name}" already exists.`, this.index);
         } else {
             try {
-                this.lhs = this.term.toGraph(this.state.graphs);
-                this.state.graphs[this.name] = this.lhs;
+                this.lhs = this.term.toGraph((name) => state.getGraph(name, this.index));
+                state.setGraph(this.name, this.lhs, this.index);
                 this.status = Part.VALID;
             } catch (e) {
                 this.status = Part.INVALID;
@@ -92,26 +94,27 @@ export class DefPart extends GraphPart {
     term: Term = new Term();
 
     public eval(): void {
-        if (!this.state) return;
+        const state = this.state;
+        if (!state) return;
 
-        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
+        if (state.symbolDefined(this.name, this.index)) {
             this.status = Part.INVALID;
             throw new EvalError(`Name "${this.name}" already exists.`, this.index);
-        } else if (this.state.graphs[this.name + "_def"] || this.state.rules[this.name + "_def"]) {
+        } else if (state.symbolDefined(this.name + "_def", this.index)) {
             this.status = Part.INVALID;
             throw new EvalError(`Name "${this.name}_def" (implicitly defined here) already exists.`, this.index);
         } else {
             try {
-                this.lhs = this.term.toGraph(this.state.graphs);
+                this.lhs = this.term.toGraph((name) => state.getGraph(name, this.index));
                 const newGen = Graph.gen(this.name, this.lhs.inputs().length, this.lhs.outputs().length);
                 const rule = new Rule(
                     newGen,
                     this.lhs,
                     this.name + "_def"
                 );
-                this.state.graphs[this.name] = newGen;
-                this.state.rules[rule.name] = rule;
 
+                state.setGraph(this.name, newGen, this.index);
+                state.setRule(rule.name, rule, this.index);
                 this.status = Part.VALID;
             } catch (e) {
                 this.status = Part.INVALID;
@@ -127,21 +130,22 @@ export class RulePart extends GraphPart {
     rhsTerm: Term = new Term();
 
     public eval(): void {
-        if (!this.state) return;
+        const state = this.state;
+        if (!state) return;
 
-        if (this.state.graphs[this.name] || this.state.rules[this.name]) {
+        if (state.symbolDefined(this.name, this.index)) {
             this.status = Part.INVALID;
             throw new EvalError(`Name "${this.name}" already exists.`, this.index);
         } else {
             try {
-                this.lhs = this.lhsTerm.toGraph(this.state.graphs);
-                this.rhs = this.rhsTerm.toGraph(this.state.graphs);
+                this.lhs = this.lhsTerm.toGraph((name) => state.getGraph(name, this.index));
+                this.rhs = this.rhsTerm.toGraph((name) => state.getGraph(name, this.index));
                 const rule = new Rule(
                     this.lhs,
                     this.rhs,
                     this.name
                 );
-                this.state.rules[rule.name] = rule;
+                state.setRule(rule.name, rule, this.index);
 
                 this.status = Part.VALID;
             } catch (e) {
@@ -152,11 +156,75 @@ export class RulePart extends GraphPart {
     }
 }
 
+export class RewritePart extends GraphPart {
+    name: string = '';
+    currentTerm: Term = new Term();
+    prevTerm: Term | null = null;
+    firstTerm: Term | null = null;
+
+    public eval(): void {
+        const state = this.state;
+        if (!state) return;
+
+        // check if the previous part is invalid. This assumes parts are evaluated synchronously and in order
+        const prevPart = state.parts[this.index - 1];
+        if (this.prevTerm && prevPart instanceof RewritePart && prevPart.status === Part.INVALID) {
+            this.status = Part.INVALID;
+            return;
+        }
+
+        try {
+            if (this.prevTerm) {
+                this.lhs = this.prevTerm.toGraph((name) => state.getGraph(name, this.index));
+                this.rhs = this.currentTerm.toGraph((name) => state.getGraph(name, this.index));
+            } else {
+                this.lhs = this.currentTerm.toGraph((name) => state.getGraph(name, this.index));
+            }
+
+            this.status = Part.VALID;
+        } catch (e) {
+            this.status = Part.INVALID;
+            throw new EvalError(`Error in rewrite expression "${this.name}": ${e}`, this.index);
+        }
+    }
+}
+
 export class State {
     parts: Part[] = [];
-    graphs: { [name: string]: Graph } = {};
-    rules: { [name: string]: Rule } = {};
     errors: EvalError[] = [];
+    private symbols: { [name: string]: { s: Graph | Rule, index: number } } = {};
+
+    // check whether a symbol is defined and was defined before the given index (or any index if -1)
+    symbolDefined(name: string, index: number = -1): boolean {
+        const entry = this.symbols[name];
+        return !!entry && (index === -1 || entry.index < index);
+    }
+
+    setGraph(name: string, g: Graph, index: number = -1): void {
+        this.symbols[name] = { s: g, index };
+    }
+
+    setRule(name: string, r: Rule, index: number = -1): void {
+        this.symbols[name] = { s: r, index };
+    }
+
+    getGraph(name: string, index: number = -1): Graph | null {
+        const entry = this.symbols[name];
+        if (entry && entry.s instanceof Graph && (index === -1 || entry.index < index)) {
+            return entry.s;
+        } else {
+            return null;
+        }
+    }
+
+    getRule(name: string, index: number = -1): Rule | null {
+        const entry = this.symbols[name];
+        if (entry && entry.s instanceof Rule && (index === -1 || entry.index < index)) {
+            return entry.s;
+        } else {
+            return null;
+        }
+    }
 
     addPart(part: Part): void {
         part.index = this.parts.length;
