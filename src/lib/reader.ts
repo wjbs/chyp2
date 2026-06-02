@@ -227,7 +227,6 @@ export class ChypReader {
         this.c.nextSibling(); // colon
         this.c.nextSibling(); // term
         firstPart.lhsTerm = this.readTerm();
-        firstPart.firstTerm = firstPart.lhsTerm;
 
         if (!this.c.nextSibling()) { // if no RewriteParts, add a stub and return
             this.state.addPart(firstPart);
@@ -238,8 +237,8 @@ export class ChypReader {
         let first = true;
         let currentTerm: Term | null = null;
 
+        let part: RewritePart;
         do {
-            let part: RewritePart;
             if (first) {
                 part = firstPart;
                 part.end = this.c.node.to;
@@ -247,7 +246,6 @@ export class ChypReader {
             } else {
                 part = new RewritePart(this.c.node.from, this.c.node.to);
                 part.name = firstPart.name;
-                part.firstTerm = firstPart.firstTerm;
                 part.lhsTerm = currentTerm;
             }
 
@@ -265,6 +263,10 @@ export class ChypReader {
             this.state.addPart(part);
             this.c.parent();
         } while (this.c.nextSibling()); // loop over RewriteParts
+
+        // the last part should store the theorem LHS, signalling it
+        // should store the theorem "first LHS" = "current RHS" if successful
+        part.firstLhsTerm = firstPart.lhsTerm;
 
         this.c.parent();
     }

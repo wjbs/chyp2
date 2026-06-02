@@ -159,7 +159,7 @@ export class RulePart extends GraphPart {
 
 export class RewritePart extends GraphPart {
     name: string = '';
-    firstTerm: Term = new Term();
+    firstLhsTerm: Term = new Term();
     lhsTerm: Term | null = new Term();
     rhsTerm: Term | null = null;
     tacticName: string = '';
