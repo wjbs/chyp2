@@ -1,6 +1,7 @@
 import { Graph } from "./graph";
 import { convexLayout } from "./layout";
 import { Rule } from "./rule";
+import { TacticArgs } from "./tactic";
 import { Term } from "./term";
 import { lineNumberForPosition } from "./util";
 
@@ -158,9 +159,11 @@ export class RulePart extends GraphPart {
 
 export class RewritePart extends GraphPart {
     name: string = '';
-    currentTerm: Term = new Term();
-    prevTerm: Term | null = null;
-    firstTerm: Term | null = null;
+    firstTerm: Term = new Term();
+    lhsTerm: Term | null = new Term();
+    rhsTerm: Term | null = null;
+    tacticName: string = '';
+    tacticArgs: TacticArgs = new TacticArgs();
 
     public eval(): void {
         const state = this.state;
@@ -168,18 +171,29 @@ export class RewritePart extends GraphPart {
 
         // check if the previous part is invalid. This assumes parts are evaluated synchronously and in order
         const prevPart = state.parts[this.index - 1];
-        if (this.prevTerm && prevPart instanceof RewritePart && prevPart.status === Part.INVALID) {
+        if (prevPart instanceof RewritePart &&
+            prevPart.name === this.name &&
+            prevPart.status === Part.INVALID) {
             this.status = Part.INVALID;
             return;
         }
 
         try {
-            if (this.prevTerm) {
-                this.lhs = this.prevTerm.toGraph((name) => state.getGraph(name, this.index));
-                this.rhs = this.currentTerm.toGraph((name) => state.getGraph(name, this.index));
-            } else {
-                this.lhs = this.currentTerm.toGraph((name) => state.getGraph(name, this.index));
+            if (this.lhsTerm) {
+                this.lhs = this.lhsTerm.toGraph((name) => state.getGraph(name, this.index));
             }
+
+            if (this.rhsTerm) {
+                this.rhs = this.rhsTerm.toGraph((name) => state.getGraph(name, this.index));
+            }
+
+            if (this.lhs && this.rhs &&
+                (this.lhs.inputs().length !== this.rhs.inputs().length ||
+                    this.lhs.outputs().length !== this.rhs.outputs().length)) {
+                throw new EvalError(`LHS and RHS of a rewrite must have the same number of inputs and outputs.`);
+            }
+
+            // TODO: run tactic code here
 
             this.status = Part.VALID;
         } catch (e) {

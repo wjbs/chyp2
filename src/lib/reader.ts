@@ -1,5 +1,5 @@
 import { Tree, TreeCursor } from "@lezer/common";
-import { GenPart, LetPart, DefPart, RulePart, State } from "./state";
+import { GenPart, LetPart, DefPart, RulePart, RewritePart, State } from "./state";
 import { Term, Atom, Par, Seq, Perm } from "./term";
 
 export function logTree(parseTree: Tree) {
@@ -49,6 +49,10 @@ export class ChypReader {
             }
             case "Rule": {
                 this.readRule();
+                break;
+            }
+            case "Rewrite": {
+                this.readRewrite();
                 break;
             }
             default: {
@@ -212,5 +216,56 @@ export class ChypReader {
         const s = this.source.slice(this.c.node.from, this.c.node.to);
         // console.log("reading ident from:", s);
         return s;
+    }
+
+    readRewrite(): void {
+        if (!this.c) return;
+        const firstPart = new RewritePart(this.c.node.from, this.c.node.to);
+        this.c.firstChild(); // rewrite
+        this.c.nextSibling(); // name
+        firstPart.name = this.readIdent();
+        this.c.nextSibling(); // colon
+        this.c.nextSibling(); // term
+        firstPart.lhsTerm = this.readTerm();
+        firstPart.firstTerm = firstPart.lhsTerm;
+
+        if (!this.c.nextSibling()) { // if no RewriteParts, add a stub and return
+            this.state.addPart(firstPart);
+            this.c.parent();
+            return;
+        }
+
+        let first = true;
+        let currentTerm: Term | null = null;
+
+        do {
+            let part: RewritePart;
+            if (first) {
+                part = firstPart;
+                part.end = this.c.node.to;
+                first = false;
+            } else {
+                part = new RewritePart(this.c.node.from, this.c.node.to);
+                part.name = firstPart.name;
+                part.firstTerm = firstPart.firstTerm;
+                part.lhsTerm = currentTerm;
+            }
+
+            this.c.firstChild(); // eq
+            this.c.nextSibling(); // TermHole
+            this.c.firstChild(); // term or Question
+            if (this.c.node.type.name === "Term") {
+                part.rhsTerm = this.readTerm();
+            }
+            this.c.parent();
+            currentTerm = part.rhsTerm;
+
+            // TODO: read tactic and args
+
+            this.state.addPart(part);
+            this.c.parent();
+        } while (this.c.nextSibling()); // loop over RewriteParts
+
+        this.c.parent();
     }
 }

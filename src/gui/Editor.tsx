@@ -18,6 +18,7 @@ const chypLanguage = LRLanguage.define({
                 def: tags.keyword,
                 rule: tags.keyword,
                 show: tags.keyword,
+                rewrite: tags.keyword,
                 as: tags.keyword,
                 by: tags.keyword,
                 HexColor: tags.string,
