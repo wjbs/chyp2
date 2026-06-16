@@ -87,7 +87,7 @@ interface EditorProps {
     onChange?: (content: string | null, pos: number | null) => void;
 }
 
-export function Editor({ state, currentPart, initialContent = '', onChange }: EditorProps) {
+export function CodeView({ state, currentPart, initialContent = '', onChange }: EditorProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
     const onChangeRef = useRef(onChange);

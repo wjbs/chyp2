@@ -36,7 +36,12 @@
     "chevrotain": "^12.0.0",
     "@lezer/lr": "^1.0.0",
     "codemirror": "^6.0.1",
-    "preact": "^10.29.1"
+    "preact": "^10.29.1",
+    "@preact/signals": "^1.3.0",
+    "dododir": "git+https://github.com/akissinger/dododir.git",
+    "dotenv": "^17.4.2",
+    "lucide-preact": "^1.17.0",
+    "wouter": "^3.3.5"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",
