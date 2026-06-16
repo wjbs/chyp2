@@ -4,7 +4,7 @@ import { Editor } from "./Editor";
 import { GraphPanels } from "./GraphView";
 import Splitpane from "./Splitpane";
 import { parser } from "../lib/parser";
-import { ChypReader, logTree } from "../lib/reader";
+import { ChypReader } from "../lib/reader";
 import { State, GraphPart } from "../lib/state";
 
 export function App() {
@@ -31,7 +31,11 @@ rewrite m_assoc3 : m * id * id ; m * id ; m
 
   const currentGraphPart = (): GraphPart | null => {
     const part = currentPart >= 0 ? state.parts[currentPart] : null;
-    return part instanceof GraphPart ? part : null;
+    if (part instanceof GraphPart) {
+      part.layout();
+      return part;
+    }
+    return null;
   };
 
   const onChange = (content: string | null, pos: number | null) => {
@@ -39,7 +43,7 @@ rewrite m_assoc3 : m * id * id ; m * id ; m
     if (content !== null) {
       const reader = new ChypReader(newState);
       const parseTree = parser.parse(content);
-      logTree(parseTree);
+      // logTree(parseTree);
       reader.readSource(content, parseTree);
 
       // TODO: should do this asynchronously
@@ -53,9 +57,6 @@ rewrite m_assoc3 : m * id * id ; m * id ; m
 
     if (pos !== null) {
       const i = newState.getPartIndexAt(pos);
-      if (state.parts[i] instanceof GraphPart) {
-        state.parts[i].layout();
-      }
       setCurrentPart(i);
     }
   }

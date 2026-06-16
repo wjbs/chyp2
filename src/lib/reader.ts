@@ -1,5 +1,5 @@
 import { Tree, TreeCursor } from "@lezer/common";
-import { GenPart, LetPart, DefPart, RulePart, RewritePart, State } from "./state";
+import { GenPart, LetPart, DefPart, RulePart, RewritePart, ShowPart, State } from "./state";
 import { Term, Atom, Par, Seq, Perm } from "./term";
 
 export function logTree(parseTree: Tree) {
@@ -53,6 +53,10 @@ export class ChypReader {
             }
             case "Rewrite": {
                 this.readRewrite();
+                break;
+            }
+            case "Show": {
+                this.readShow();
                 break;
             }
             default: {
@@ -118,6 +122,17 @@ export class ChypReader {
         // console.log(`read def: ${part.name} = ${part.term.toString()}`);
     }
 
+    readShow(): void {
+        if (!this.c) return;
+        const part = new ShowPart(this.c.node.from, this.c.node.to);
+        this.c.firstChild(); // show
+        this.c.nextSibling(); // Ref
+        part.name = this.readIdent();
+        this.c.parent();
+
+        this.state.addPart(part);
+    }
+
     readRule(): void {
         if (!this.c) return;
         const part = new RulePart(this.c.node.from, this.c.node.to);
@@ -161,7 +176,7 @@ export class ChypReader {
         this.c.firstChild();
         do {
             switch (this.c.node.type.name) {
-                case "TermRef":
+                case "Ref":
                 case "id":
                 case "id0": {
                     t.children.push(new Atom(this.readIdent()));
