@@ -1,6 +1,7 @@
 import { Graph } from './graph.ts';
 export declare class Term {
     toGraph(_defs: (name: string) => Graph | null): Graph;
+    toString(): string;
 }
 export declare class Atom extends Term {
     ident: string;

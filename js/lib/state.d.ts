@@ -49,11 +49,16 @@ export declare class RulePart extends GraphPart {
 }
 export declare class RewritePart extends GraphPart {
     name: string;
-    firstLhsTerm: Term;
+    firstLhsTerm: Term | null;
     lhsTerm: Term | null;
     rhsTerm: Term | null;
     tacticName: string;
     tacticArgs: TacticArgs;
+    isFinishedTheorem(): boolean;
+    eval(): void;
+}
+export declare class ShowPart extends GraphPart {
+    name: string;
     eval(): void;
 }
 export declare class State {

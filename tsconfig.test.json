@@ -1,11 +1,9 @@
 {
-  "extends": "./tsconfig.app.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "composite": true,
     "types": ["mocha", "node"],
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["src/test", "src/lib"],
-  "exclude": []
+  "include": ["src/test", "src/lib"]
 }

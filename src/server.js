@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { DododirServer } from 'dododir';
+import { DododirServer } from 'dododir/server';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

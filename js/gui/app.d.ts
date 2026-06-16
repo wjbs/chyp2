@@ -1,1 +1,2 @@
-export declare function App(): import("preact").JSX.Element;
+import type { JSX } from 'preact';
+export declare function App(): JSX.Element;

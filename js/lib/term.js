@@ -17,6 +17,9 @@ export class Term {
     toGraph(_defs) {
         return new Graph();
     }
+    toString() {
+        return "id0";
+    }
 }
 export class Atom extends Term {
     ident;

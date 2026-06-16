@@ -1,5 +1,5 @@
 import { Tree, TreeCursor } from "@lezer/common";
-import { GenPart, LetPart, DefPart, RulePart, RewritePart, State } from "./state";
+import { GenPart, LetPart, DefPart, RulePart, RewritePart, ShowPart, State } from "./state";
 import { Term, Atom, Par, Seq, Perm } from "./term";
 export function logTree(parseTree) {
     let indent = 0;
@@ -48,6 +48,10 @@ export class ChypReader {
             }
             case "Rewrite": {
                 this.readRewrite();
+                break;
+            }
+            case "Show": {
+                this.readShow();
                 break;
             }
             default: {
@@ -108,6 +112,16 @@ export class ChypReader {
         this.state.addPart(part);
         // console.log(`read def: ${part.name} = ${part.term.toString()}`);
     }
+    readShow() {
+        if (!this.c)
+            return;
+        const part = new ShowPart(this.c.node.from, this.c.node.to);
+        this.c.firstChild(); // show
+        this.c.nextSibling(); // Ref
+        part.name = this.readIdent();
+        this.c.parent();
+        this.state.addPart(part);
+    }
     readRule() {
         if (!this.c)
             return;
@@ -147,7 +161,7 @@ export class ChypReader {
         this.c.firstChild();
         do {
             switch (this.c.node.type.name) {
-                case "TermRef":
+                case "Ref":
                 case "id":
                 case "id0": {
                     t.children.push(new Atom(this.readIdent()));
@@ -184,6 +198,46 @@ export class ChypReader {
         }
         this.c.parent();
         return new Perm(perm);
+    }
+    readTactic(part) {
+        if (!this.c)
+            return;
+        // cursor is at Tactic node
+        this.c.firstChild(); // first child: 'rule' keyword, Identifier, or Minus
+        const nodeName = this.c.node.type.name;
+        const nodeText = this.source.slice(this.c.node.from, this.c.node.to);
+        if (nodeName === 'rule' || (nodeName === 'Identifier' && (nodeText === 'refl' || nodeText === 'simp'))) {
+            part.tacticName = nodeText;
+            // Read TacticArg nodes from siblings
+            while (this.c.nextSibling()) {
+                if (this.c.node.type.name === 'TacticArg') {
+                    this.c.firstChild(); // Plus, Minus, or Identifier
+                    const signName = this.c.node.type.name;
+                    let converse = false;
+                    if (signName === 'Minus') {
+                        converse = true;
+                        this.c.nextSibling(); // advance to Identifier
+                    }
+                    else if (signName === 'Plus') {
+                        this.c.nextSibling(); // advance to Identifier
+                    }
+                    const argName = this.source.slice(this.c.node.from, this.c.node.to);
+                    part.tacticArgs.rules.push(converse ? "-" + argName : argName);
+                    this.c.parent(); // back to TacticArg
+                }
+            }
+        }
+        else {
+            // Unrecognized first symbol — treat as implicit "rule" tactic with this identifier as the arg
+            part.tacticName = 'rule';
+            const converse = nodeName === 'Minus';
+            if (converse) {
+                this.c.nextSibling(); // advance past Minus to Identifier
+            }
+            const argName = this.source.slice(this.c.node.from, this.c.node.to);
+            part.tacticArgs.rules.push(converse ? "-" + argName : argName);
+        }
+        this.c.parent(); // back to Tactic node
     }
     readNat() {
         if (!this.c)
@@ -237,7 +291,14 @@ export class ChypReader {
             }
             this.c.parent();
             currentTerm = part.rhsTerm;
-            // TODO: read tactic and args
+            if (this.c.nextSibling()) { // 'by' keyword
+                if (this.c.nextSibling()) { // Tactic
+                    this.readTactic(part);
+                }
+            }
+            else {
+                part.tacticName = 'refl';
+            }
             this.state.addPart(part);
             this.c.parent();
         } while (this.c.nextSibling()); // loop over RewriteParts
