@@ -25,6 +25,9 @@ rewrite m_assoc3 : m * id * id ; m * id ; m
   = id * m * id ; m * id ; m by m_assoc
   = id * m * id ; id * m ; m by m_assoc
   = id * id * m ; id * m ; m by m_assoc
+
+show m3
+show m_assoc3
 `;
   const [state, setState] = useState<State>(new State());
   const [currentPart, setCurrentPart] = useState<number>(-1);
