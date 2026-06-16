@@ -12,7 +12,8 @@ export function EdgeView({ graph, edge }: EdgeViewProps) {
     function pathFor(v: number, i: number, src: boolean): string {
         const vd = graph.vertexData(v);
         const num = src ? edgeData.s.length : edgeData.t.length;
-        const xShift = src ? -0.4 : 0.4;
+        const dx = edgeData.value !== 'id' ? 0.4 : 0.0;
+        const xShift = src ? -dx : dx;
         const yShift = num <= 1 ? 0 : (i / (num - 1)) - 0.5;
         const p1x = vd.x * SCALE;
         const p1y = vd.y * SCALE;
@@ -26,23 +27,26 @@ export function EdgeView({ graph, edge }: EdgeViewProps) {
     }
 
     return (<g>
-        <rect
-            x={(edgeData.x - 0.4) * SCALE}
-            y={(edgeData.y - edgeData.boxSize() * 0.5 + 0.1) * SCALE}
-            width={0.8 * SCALE}
-            height={(edgeData.boxSize() - 0.2) * SCALE}
-            fill="#ccccff"
-            stroke="black"
-            stroke-width={0.01 * SCALE} />
-        <text
-            x={edgeData.x * SCALE}
-            y={edgeData.y * SCALE}
-            text-anchor="middle"
-            dominant-baseline="central"
-            font-size={0.3 * SCALE}
-            font-family="sans-serif">
-            {edgeData.value}
-        </text>
+        {(edgeData.value !== 'id') ?
+            <g>
+                <rect
+                    x={(edgeData.x - 0.4) * SCALE}
+                    y={(edgeData.y - edgeData.boxSize() * 0.5 + 0.1) * SCALE}
+                    width={0.8 * SCALE}
+                    height={(edgeData.boxSize() - 0.2) * SCALE}
+                    fill="#ccccff"
+                    stroke="black"
+                    stroke-width={0.01 * SCALE} />
+                <text
+                    x={edgeData.x * SCALE}
+                    y={edgeData.y * SCALE}
+                    text-anchor="middle"
+                    dominant-baseline="central"
+                    font-size={0.3 * SCALE}
+                    font-family="sans-serif">
+                    {edgeData.value}
+                </text>
+            </g> : null}
         {edgeData.s.map((s, i) =>
             <path key={s} d={pathFor(s, i, true)}
                 fill="none"
