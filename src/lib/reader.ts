@@ -203,6 +203,48 @@ export class ChypReader {
         return new Perm(perm);
     }
 
+    readTactic(part: RewritePart): void {
+        if (!this.c) return;
+        // cursor is at Tactic node
+
+        this.c.firstChild(); // first child: 'rule' keyword, Identifier, or Minus
+        const nodeName = this.c.node.type.name;
+        const nodeText = this.source.slice(this.c.node.from, this.c.node.to);
+
+        if (nodeName === 'rule' || (nodeName === 'Identifier' && (nodeText === 'refl' || nodeText === 'simp'))) {
+            part.tacticName = nodeText;
+
+            // Read TacticArg nodes from siblings
+            while (this.c.nextSibling()) {
+                if (this.c.node.type.name === 'TacticArg') {
+                    this.c.firstChild(); // Plus, Minus, or Identifier
+                    const signName: string = this.c.node.type.name;
+                    let converse = false;
+                    if (signName === 'Minus') {
+                        converse = true;
+                        this.c.nextSibling(); // advance to Identifier
+                    } else if (signName === 'Plus') {
+                        this.c.nextSibling(); // advance to Identifier
+                    }
+                    const argName = this.source.slice(this.c.node.from, this.c.node.to);
+                    part.tacticArgs.rules.push(converse ? "-" + argName : argName);
+                    this.c.parent(); // back to TacticArg
+                }
+            }
+        } else {
+            // Unrecognized first symbol — treat as implicit "rule" tactic with this identifier as the arg
+            part.tacticName = 'rule';
+            const converse = nodeName === 'Minus';
+            if (converse) {
+                this.c.nextSibling(); // advance past Minus to Identifier
+            }
+            const argName = this.source.slice(this.c.node.from, this.c.node.to);
+            part.tacticArgs.rules.push(converse ? "-" + argName : argName);
+        }
+
+        this.c.parent(); // back to Tactic node
+    }
+
     readNat(): number {
         if (!this.c) return 0;
         const s = this.source.slice(this.c.node.from, this.c.node.to);
@@ -258,7 +300,13 @@ export class ChypReader {
             this.c.parent();
             currentTerm = part.rhsTerm;
 
-            // TODO: read tactic and args
+            if (this.c.nextSibling()) { // 'by' keyword
+                if (this.c.nextSibling()) { // Tactic
+                    this.readTactic(part);
+                }
+            } else {
+                part.tacticName = 'refl';
+            }
 
             this.state.addPart(part);
             this.c.parent();

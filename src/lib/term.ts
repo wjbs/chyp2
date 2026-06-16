@@ -19,6 +19,10 @@ export class Term {
     toGraph(_defs: (name: string) => Graph | null): Graph {
         return new Graph();
     }
+
+    toString(): string {
+        return "id0";
+    }
 }
 
 export class Atom extends Term {

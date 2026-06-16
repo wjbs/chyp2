@@ -1,8 +1,9 @@
 import { Graph } from "./graph";
 import { convexLayout } from "./layout";
 import { Rule } from "./rule";
-import { TacticArgs } from "./tactic";
+import { Tactic, RuleTactic, TacticArgs } from "./tactic";
 import { Term } from "./term";
+import { ProofState, Goal, ProofError } from "./proofstate";
 import { lineNumberForPosition } from "./util";
 
 type PartStatus = 0 | 1 | 2 | 3;
@@ -159,11 +160,30 @@ export class RulePart extends GraphPart {
 
 export class RewritePart extends GraphPart {
     name: string = '';
-    firstLhsTerm: Term = new Term();
-    lhsTerm: Term | null = new Term();
+    firstLhsTerm: Term | null = null;
+    lhsTerm: Term | null = null;
     rhsTerm: Term | null = null;
     tacticName: string = '';
     tacticArgs: TacticArgs = new TacticArgs();
+
+    // check this is the last part (i.e. firstLhsTerm is not null) and that all previous parts are
+    // marked as valid
+    isFinishedTheorem(): boolean {
+        const state = this.state;
+        if (!state) return false;
+        if (this.firstLhsTerm === null) { return false; }
+
+        for (let i = this.index; i >= 0; i--) {
+            const part = state.parts[i];
+            if (!(part instanceof RewritePart && part.name === this.name)) {
+                break;
+            }
+            if (part.status !== Part.VALID) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     public eval(): void {
         const state = this.state;
@@ -187,19 +207,74 @@ export class RewritePart extends GraphPart {
                 this.rhs = this.rhsTerm.toGraph((name) => state.getGraph(name, this.index));
             }
 
-            if (this.lhs && this.rhs &&
-                (this.lhs.inputs().length !== this.rhs.inputs().length ||
-                    this.lhs.outputs().length !== this.rhs.outputs().length)) {
+            if (!this.lhs || !this.rhs) {
+                this.status = Part.INVALID;
+                return;
+            }
+
+            if ((this.lhs.inputs().length !== this.rhs.inputs().length ||
+                this.lhs.outputs().length !== this.rhs.outputs().length)) {
                 throw new EvalError(`LHS and RHS of a rewrite must have the same number of inputs and outputs.`);
             }
 
-            // TODO: run tactic code here
+            const proofState = new ProofState(state, new Goal(this.lhs, this.rhs), this.index);
+            try {
+                let tactic: Tactic;
+                switch (this.tacticName) {
+                    case "rule":
+                        tactic = new RuleTactic(proofState, this.tacticArgs);
+                        break;
+                    default:
+                        tactic = new Tactic(proofState, this.tacticArgs);
+                }
+                tactic.apply();
+            } catch (e) {
+                if (e instanceof ProofError) {
+                    throw new EvalError(`Error in tactic "${this.tacticName}": ${e}`);
+                }
+            }
 
-            this.status = Part.VALID;
+            if (proofState.isGoalSolved()) {
+                this.status = Part.VALID;
+                if (this.isFinishedTheorem()) {
+                    const lhs = this.firstLhsTerm!.toGraph((name) => state.getGraph(name, this.index));
+                    const rule = new Rule(lhs, this.rhs, this.name);
+                    state.setRule(rule.name, rule, this.index);
+                }
+            } else {
+                this.status = Part.INVALID;
+                throw new EvalError(`Tactic "${this.tacticName}" did not solve the goal.`);
+            }
         } catch (e) {
             this.status = Part.INVALID;
             throw new EvalError(`Error in rewrite expression "${this.name}": ${e}`, this.index);
         }
+    }
+}
+
+export class ShowPart extends GraphPart {
+    name: string = '';
+    public eval(): void {
+        const state = this.state;
+        if (!state) return;
+
+        const rule = state.getRule(this.name, this.index);
+        if (rule) {
+            this.lhs = rule.lhs.copy();
+            this.rhs = rule.rhs.copy();
+            this.status = Part.VALID;
+            return;
+        }
+
+        const graph = state.getGraph(this.name, this.index);
+        if (graph) {
+            this.lhs = graph.copy();
+            this.status = Part.VALID;
+            return;
+        }
+
+        this.status = Part.INVALID;
+        throw new EvalError(`Name "${this.name}" not found.`, this.index);
     }
 }
 

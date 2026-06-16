@@ -16,7 +16,7 @@ export const
   Comma = 14,
   id = 15,
   id0 = 16,
-  TermRef = 17,
+  Ref = 17,
   Star = 18,
   Semicolon = 19,
   Gen = 20,
@@ -43,5 +43,4 @@ export const
   Plus = 41,
   Show = 42,
   show = 43,
-  RuleRef = 44,
-  SingleTerm = 45
+  SingleTerm = 44

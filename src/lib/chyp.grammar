@@ -38,7 +38,7 @@ Rewrite {
 }
 
 Show {
-  kw<"show"> RuleRef
+  kw<"show"> Ref
 }
 
 ImportLet { Identifier Eq Term }
@@ -58,7 +58,7 @@ atomicTerm {
   Perm |
   kw<"id"> |
   kw<"id0"> |
-  TermRef
+  Ref
 }
 
 Perm { kw<"sw"> "[" Nat (Comma Nat)* "]" }
@@ -69,8 +69,7 @@ Tactic {
 
 TacticArg { (Plus | Minus)? Identifier }
 
-TermRef { Identifier }
-RuleRef { Identifier }
+Ref { Identifier }
 
 kw<term> { @specialize[@name={term}]<Identifier, term> }
 
