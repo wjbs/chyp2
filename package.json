@@ -1,14 +1,36 @@
 {
   "name": "chyp2",
-  "private": true,
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    "./lib/*": {
+      "import": "./js/lib/*.js",
+      "types": "./js/lib/*.d.ts"
+    },
+    "./gui/*": {
+      "import": "./js/gui/*.js",
+      "types": "./js/gui/*.d.ts"
+    }
+  },
+  "files": [
+    "js"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:lib": "rm -rf js && tsc -p tsconfig.lib.json",
     "preview": "vite preview",
     "test": "mocha",
-    "prepare": "lezer-generator --typeScript src/lib/chyp.grammar -o src/lib/parser.ts"
+    "prepare": "lezer-generator --typeScript src/lib/chyp.grammar -o src/lib/parser.ts",
+    "start": "npm run dev"
+  },
+  "peerDependencies": {
+    "preact": ">=10",
+    "codemirror": ">=6",
+    "@codemirror/language": ">=6",
+    "@codemirror/state": ">=6",
+    "@codemirror/view": ">=6",
+    "@lezer/highlight": ">=1"
   },
   "dependencies": {
     "chevrotain": "^12.0.0",
