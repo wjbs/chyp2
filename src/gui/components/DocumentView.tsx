@@ -4,9 +4,9 @@ import { useState, useEffect } from "preact/hooks";
 import { Editor } from "./Editor";
 import { GraphPanels } from "./GraphView";
 import Splitpane from "./Splitpane";
-import { parser } from "../lib/parser";
-import { ChypReader } from "../lib/reader";
-import { State, GraphPart } from "../lib/state";
+import { parser } from "../../lib/parser";
+import { ChypReader } from "../../lib/reader";
+import { State, GraphPart } from "../../lib/state";
 
 export function DocumentView() {
     const initialContent = `# Chyp example

@@ -1,7 +1,7 @@
 import { useRef } from "preact/hooks";
-import { Graph } from "../lib/graph";
+import { Graph } from "../../lib/graph";
 import { EdgeView } from "./EdgeView";
-import { SCALE } from "../lib/util";
+import { SCALE } from "../../lib/util";
 
 interface GraphViewProps {
     graph: Graph | null;

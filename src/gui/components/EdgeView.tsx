@@ -1,5 +1,5 @@
-import type { Graph } from "../lib/graph";
-import { SCALE } from "../lib/util";
+import type { Graph } from "../../lib/graph";
+import { SCALE } from "../../lib/util";
 
 interface EdgeViewProps {
     graph: Graph;

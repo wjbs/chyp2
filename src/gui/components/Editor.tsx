@@ -3,10 +3,10 @@ import { EditorView, basicSetup } from 'codemirror';
 import { EditorState, StateEffect, StateField, RangeSetBuilder } from '@codemirror/state';
 import { Decoration, keymap } from '@codemirror/view';
 import type { DecorationSet } from '@codemirror/view';
-import { parser } from "../lib/parser"
+import { parser } from "../../lib/parser"
 import { foldNodeProp, foldInside, indentNodeProp, LRLanguage, LanguageSupport } from "@codemirror/language"
 import { styleTags, tags } from "@lezer/highlight"
-import { State, Part } from '../lib/state';
+import { State, Part } from '../../lib/state';
 
 const chypLanguage = LRLanguage.define({
     parser: parser.configure({
