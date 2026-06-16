@@ -53,6 +53,9 @@ rewrite m_assoc3 : m * id * id ; m * id ; m
 
     if (pos !== null) {
       const i = newState.getPartIndexAt(pos);
+      if (state.parts[i] instanceof GraphPart) {
+        state.parts[i].layout();
+      }
       setCurrentPart(i);
     }
   }

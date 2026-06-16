@@ -83,7 +83,7 @@ export class EData {
     /**
      * Returns the number of 'units' of width the box should have to display nicely.
      *
-     * The simple rule is if both inputs and outputs are <= 1, draw as a small (size 1)
+     * The rule is if both inputs and outputs are <= 1, draw as a small (size 1)
      * box, otherwise draw as a larger (size 2) box.
      */
     boxSize(): number {
@@ -473,7 +473,8 @@ export class Graph {
      */
     insertIdAfter(v: number, reverse: boolean = false): number {
         const vd = this.vertexData(v);
-        const w = this.addVertex(vd.x + 3, vd.y, vd.value);
+        const shift = reverse ? -1.5 : 1.5;
+        const w = this.addVertex(vd.x + 2 * shift, vd.y, vd.value);
         const wd = this.vertexData(w);
         wd.highlight = vd.highlight;
         this.setOutputs(this.outputs().map(x => (x !== v ? x : w)));
@@ -485,7 +486,7 @@ export class Graph {
         vd.outEdges.clear();
 
         const [s, t] = !reverse ? [[v], [w]] : [[w], [v]];
-        const e = this.addEdge(s, t, 'id', vd.x + 1.5, vd.y);
+        const e = this.addEdge(s, t, 'id', vd.x + shift, vd.y);
         this.edgeData(e).highlight = vd.highlight;
         return e;
     }
