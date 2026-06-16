@@ -66,7 +66,7 @@ export function Dashboard() {
     return (
         <div class="dashboard">
             <header class="dashboard-header">
-                <h1>dododir</h1>
+                <h1>chyp</h1>
                 <div class="header-right">
                     <span class="user-name">{currentUser.value?.displayName}</span>
                     <button class="btn-ghost" onClick={signOut}>Sign out</button>

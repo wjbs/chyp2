@@ -22,7 +22,7 @@
     "preview": "vite preview",
     "test": "mocha",
     "prepare": "lezer-generator --typeScript src/lib/chyp.grammar -o src/lib/parser.ts",
-    "start": "npx node server.js"
+    "start": "npx node src/server.js"
   },
   "peerDependencies": {
     "@codemirror/language": ">=6",

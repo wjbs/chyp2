@@ -3,8 +3,7 @@ import { useEffect } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { api } from 'dododir';
 import { currentUser, authToken } from './auth';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
+import { Login, Register } from './pages/AuthPages';
 import { Dashboard } from './pages/Dashboard';
 import { EditorPage } from './pages/EditorPage';
 

@@ -24,7 +24,7 @@ interface Props {
     mode: 'login' | 'register';
 }
 
-export function AuthForm({ mode }: Props) {
+function AuthForm({ mode }: Props) {
     const [, navigate] = useLocation();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -125,4 +125,12 @@ export function AuthForm({ mode }: Props) {
             </div>
         </div>
     );
+}
+
+export function Login() {
+    return <AuthForm mode="login" />;
+}
+
+export function Register() {
+    return <AuthForm mode="register" />;
 }

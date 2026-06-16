@@ -1,6 +1,10 @@
 # ENV file
 .env
 
+# Database
+*.db
+*.db-*
+
 # Logs
 logs
 *.log
