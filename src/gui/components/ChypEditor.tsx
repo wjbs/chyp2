@@ -1,4 +1,5 @@
 
+import '../index.css';
 import { useState, useEffect } from "preact/hooks";
 
 import { CodeView } from "./CodeView";

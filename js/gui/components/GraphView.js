@@ -1,4 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "preact/jsx-runtime";
+import "../index.css";
 import { useRef } from "preact/hooks";
 import { Graph } from "../../lib/graph";
 import { EdgeView } from "./EdgeView";

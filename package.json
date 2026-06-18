@@ -10,7 +10,9 @@
     "./gui/*": {
       "import": "./js/gui/*.js",
       "types": "./js/gui/*.d.ts"
-    }
+    },
+    "./gui/index.css": "./js/gui/index.css",
+    "./gui/style.css": "./js/gui/index.css"
   },
   "files": [
     "js"
@@ -18,7 +20,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:lib": "rm -rf js && tsc -p tsconfig.lib.json",
+    "build:lib": "rm -rf js && tsc -p tsconfig.lib.json && cp src/gui/index.css js/gui/index.css",
     "preview": "vite preview",
     "test": "mocha",
     "prepare": "lezer-generator --typeScript src/lib/chyp.grammar -o src/lib/parser.ts",

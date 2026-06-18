@@ -1,3 +1,4 @@
+import '../index.css';
 export interface ChypEditorProps {
     filename: string;
     content: string;

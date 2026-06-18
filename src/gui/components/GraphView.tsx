@@ -1,3 +1,4 @@
+import "../index.css";
 import { useRef } from "preact/hooks";
 import { Graph } from "../../lib/graph";
 import { EdgeView } from "./EdgeView";

@@ -1,4 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "preact/jsx-runtime";
+import '../index.css';
 import { useState, useEffect } from "preact/hooks";
 import { CodeView } from "./CodeView";
 import { GraphPanels } from "./GraphView";

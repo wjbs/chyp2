@@ -1,3 +1,4 @@
+import "../index.css";
 import { Graph } from "../../lib/graph";
 interface GraphViewProps {
     graph: Graph | null;
