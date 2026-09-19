@@ -129,6 +129,7 @@ export class Par extends Term {
  * extra vertices and identity boxes.
  */
 export function layerDecomp(g: Graph): number[][] {
+    g.removeIds() // Remove all internal identities
     const eLayers: number[][] = [];
     let vLayer: number[] = [];
     const vPlaced = new Set<number>();

@@ -2,7 +2,11 @@ import "../index.css";
 import { useRef } from "preact/hooks";
 import { Graph } from "../../lib/graph";
 import { EdgeView } from "./EdgeView";
+import { VertexView } from "./VertexView";
 import { SCALE } from "../../lib/util";
+import { convexLayout } from "../../lib/layout";
+// import { layerDecomp } from "../../lib/term";
+
 
 interface GraphViewProps {
     graph: Graph | null;
@@ -13,12 +17,15 @@ export function GraphView({ graph }: GraphViewProps) {
     if (!graph) {
         return <div className="graph-panel" />;
     }
+    convexLayout(graph, true, (window as any).NUM_ITERATIONS ?? 10);
+    // console.log(graph);
     const bbox = graph.boundingBox();
     const viewBox = `${bbox[0] * SCALE} ${bbox[2] * SCALE} ${(bbox[1] - bbox[0]) * SCALE} ${(bbox[3] - bbox[2]) * SCALE}`;
     return (
         <div className="graph-panel">
             <svg ref={svgRef} className="graph-svg" viewBox={viewBox}>
                 {[...graph.edges()].map(e => <EdgeView key={e} graph={graph} edge={e} />)}
+                {[...graph.vertices()].map(v => <VertexView key={v} graph={graph} vertex={v} />)}
             </svg>
         </div>
     );

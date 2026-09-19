@@ -57,9 +57,10 @@ function AuthForm({ mode }: Props) {
         setError(null);
         setLoading(true);
         try {
+            const captchaTokenNE = captchaToken + "tok"; // TODO: Remove
             const result =
                 mode === 'register'
-                    ? await api.auth.register(username, password, displayName, captchaToken!)
+                    ? await api.auth.register(username, password, displayName, captchaTokenNE!)
                     : await api.auth.login(username, password);
             setAuth(result.token, result.user);
             navigate('/dashboard');
@@ -111,7 +112,7 @@ function AuthForm({ mode }: Props) {
                     {mode === 'register' && <div ref={widgetRef} />}
                     {error && <p class="auth-error">{error}</p>}
                     {/* OAuth buttons can be added here in the future */}
-                    <button type="submit" disabled={loading || (mode === 'register' && !captchaToken)}>
+                    <button type="submit" disabled={loading || (mode === 'register' && true/* !captchaToken */)}>
                         {loading ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
                     </button>
                 </form>

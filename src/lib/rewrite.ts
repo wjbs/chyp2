@@ -98,7 +98,7 @@ export function dpo(r: Rule, m: Match): Match {
         const e1 = h.addEdge(
             ed.s.map(v => m1.vmap.get(v)!),
             ed.t.map(v => m1.vmap.get(v)!),
-            ed.value, ed.x, ed.y, ed.fg, ed.bg, ed.hyper
+            ed.value, ed.x, ed.y, ed.width, ed.height, ed.fg, ed.bg, ed.hyper
         );
         m1.emap.set(e, e1);
         m1.eimg.add(e1);

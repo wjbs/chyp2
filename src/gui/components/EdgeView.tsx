@@ -1,39 +1,36 @@
 import type { Graph } from "../../lib/graph";
-import { SCALE } from "../../lib/util";
+import { SCALE, curveBetween, vertexyShift } from "../../lib/util";
 
 interface EdgeViewProps {
     graph: Graph;
     edge: number;
 }
 
+
 export function EdgeView({ graph, edge }: EdgeViewProps) {
     const edgeData = graph.edgeData(edge);
 
-    function pathFor(v: number, i: number, src: boolean): string {
-        const vd = graph.vertexData(v);
-        const num = src ? edgeData.s.length : edgeData.t.length;
-        const dx = edgeData.value !== 'id' ? 0.4 : 0.0;
-        const xShift = src ? -dx : dx;
-        const yShift = num <= 1 ? 0 : (i / (num - 1)) - 0.5;
-        const p1x = vd.x * SCALE;
-        const p1y = vd.y * SCALE;
-        const p2x = (edgeData.x + xShift) * SCALE;
-        const p2y = (edgeData.y + yShift) * SCALE;
-        const cp1x = 0.6 * p1x + 0.4 * p2x;
-        const cp1y = p1y;
-        const cp2x = 0.4 * p1x + 0.6 * p2x;
-        const cp2y = p2y;
-        return `M ${p1x} ${p1y} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${p2x} ${p2y}`;
-    }
+    // function pathFor(v: number, i: number, src: boolean): string {
+    //     const vd = graph.vertexData(v);
+    //     const num = src ? edgeData.s.length : edgeData.t.length;
+    //     const dx = edgeData.width * 0.4;
+    //     const xShift = src ? -dx : dx;
+    //     const yShift = num <= 1 ? 0 : (i / (num - 1)) - 0.5;
+    //     const p1x = vd.x * SCALE;
+    //     const p1y = vd.y * SCALE;
+    //     const p2x = (edgeData.x + xShift) * SCALE;
+    //     const p2y = (edgeData.y + yShift) * SCALE;
+    //     return curveBetween(p1x, p1y, p2x, p2y);
+    // }
 
-    return (<g>
+    return (<g id={`${edge}`}>
         {(edgeData.value !== 'id') ?
             <g>
                 <rect
-                    x={(edgeData.x - 0.4) * SCALE}
-                    y={(edgeData.y - edgeData.boxSize() * 0.5 + 0.1) * SCALE}
-                    width={0.8 * SCALE}
-                    height={(edgeData.boxSize() - 0.2) * SCALE}
+                    x={(edgeData.x - 0.4 * edgeData.width) * SCALE}
+                    y={(edgeData.y - edgeData.height * 0.4) * SCALE}
+                    width={0.8 * edgeData.width * SCALE}
+                    height={0.8 * edgeData.height * SCALE}
                     fill="#ccccff"
                     stroke="black"
                     stroke-width={0.01 * SCALE} />
@@ -47,17 +44,46 @@ export function EdgeView({ graph, edge }: EdgeViewProps) {
                     {edgeData.value}
                 </text>
             </g> : null}
-        {edgeData.s.map((s, i) =>
+        {/* {(edgeData.value !== 'id') ? edgeData.s.map((s, i) =>
             <path key={s} d={pathFor(s, i, true)}
                 fill="none"
                 stroke="black"
                 stroke-width={0.01 * SCALE} />
-        )}
-        {edgeData.t.map((t, i) =>
+        ) : null}
+        {(edgeData.value !== 'id') ? edgeData.t.map((t, i) =>
             <path key={t} d={pathFor(t, i, false)}
                 fill="none"
                 stroke="black"
                 stroke-width={0.01 * SCALE} />
-        )}
+        ) : null}*/}
+        {(edgeData.value !== 'id') ? null :
+            edgeData.s.map(function (svi, i) {
+            const tvi = edgeData.t[i];
+            const sv = graph.vertexData(svi);
+            const tv = graph.vertexData(tvi);
+            const svIn : number|null = [...sv.inEdges.values()].at(0) ?? null
+            const tvOut : number|null = [...tv.outEdges.values()].at(0) ?? null;
+            let [sx, sy] = [sv.x, sv.y]
+            let [tx, ty] = [tv.x, tv.y]
+            if (svIn !== null) {
+                const ed = graph.edgeData(svIn);
+                if (ed.value !== 'id') {
+                    sx = ed.x + ed.width * 0.4;
+                    sy = ed.y + vertexyShift(svi, ed.t);
+                }
+            }
+            if (tvOut !== null) {
+                const ed = graph.edgeData(tvOut);
+                if (ed.value !== 'id') {
+                    tx = ed.x - ed.width * 0.4;
+                    ty = ed.y + vertexyShift(tvi, ed.s);
+                }
+            }
+            return <path key={svi} d={curveBetween(sx * SCALE, sy * SCALE, 
+                    tx * SCALE, ty * SCALE)}
+                fill="none"
+                stroke="black"
+                stroke-width={0.01 * SCALE} />
+            })}
     </g>);
 }

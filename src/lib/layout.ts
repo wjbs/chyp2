@@ -16,7 +16,7 @@
 import { Graph } from './graph.ts';
 import { layerDecomp } from './term.ts';
 
-const NUM_ITERATIONS = 10;
+// const NUM_ITERATIONS = 10;
 
 /**
  * Enforce minimum spacing between a sorted sequence of positions.
@@ -38,6 +38,47 @@ function enforceMinSpacing(positions: number[], minGaps: number[]): void {
     }
 }
 
+function average(nums : number[]) : number|null {
+    if (nums.length === 0) {
+        return null
+    }
+    else {
+        return nums.reduce((x,y) => x + y) / nums.length
+    }
+}
+
+function centreGraph(g : Graph): void {
+
+    // ----- Centre the result -----
+    let xMin = Infinity;
+    let xMax = -Infinity;
+    let yMin = Infinity;
+    let yMax = -Infinity;
+    for (const v of g.vertices()) {
+        const x = g.vertexData(v).x;
+        const y = g.vertexData(v).y;
+        if (x < xMin) xMin = x;
+        if (x > xMax) xMax = x;
+        if (y < yMin) yMin = y;
+        if (y > yMax) yMax = y;
+    }
+    if (isFinite(xMin) && isFinite(xMax) && isFinite(yMin) && isFinite(yMax)) {
+        const xCenter = (xMin + xMax) / 2;
+        const yCenter = (yMin + yMax) / 2;
+        for (const v of g.vertices()) {
+            g.vertexData(v).x -= xCenter;
+            g.vertexData(v).y -= yCenter;
+        }
+        for (const e of g.edges()) {
+            g.edgeData(e).x -= xCenter;
+            g.edgeData(e).y -= yCenter;
+        }
+    }
+}
+
+const layerGap = 0.4;
+
+
 /**
  * Lay out a graph using layer decomposition and iterative y-coordinate relaxation.
  *
@@ -58,22 +99,56 @@ function enforceMinSpacing(positions: number[], minGaps: number[]): void {
  * After iteration the whole diagram is centred and non-boundary target vertices are
  * snapped to their incoming edge.
  */
-export function convexLayout(g: Graph, force: boolean = false): void {
+export function convexLayout(g: Graph, force: boolean = false, NUM_ITERATIONS: number = 10): void {
     if (g.laidOut && !force) return;
     const eLayers = layerDecomp(g);
 
+    let isPerm = true;
+    for (const ed of g.edata.values()) {
+        isPerm &&= (ed.value === 'id');
+    }
+
+    if (isPerm) {
+        // g is a permutation
+        const inp = [...g.inputs()];
+        const width = layerGap * Math.sqrt(inp.length);
+        for (let i = 0; i < inp.length; i++) {
+            const vd = g.vertexData(inp[i]);
+            vd.x = 0;
+            vd.y = layerGap * (i - (inp.length - 1) / 2);
+        }
+        
+        const outp = [...g.outputs()];
+        for (let i = 0; i < outp.length; i++) {
+            const vd = g.vertexData(outp[i]);
+            vd.x = width;
+            vd.y = layerGap * (i - (outp.length - 1) / 2);
+        }
+
+        for (let ed of g.edata.values()) {
+            ed.x = (g.vertexData(ed.s[0]).x + g.vertexData(ed.t[0]).x) / 2;
+            ed.y = (g.vertexData(ed.s[0]).y + g.vertexData(ed.t[0]).y) / 2;
+        }
+
+        centreGraph(g);
+        return;
+    }
+
     // ----- Assign initial x-coordinates and rough y-coordinates -----
-    let x = -(eLayers.length + 1) * 1.5;
+    let x = 0;
 
     const inp = [...g.inputs()];
     for (let i = 0; i < inp.length; i++) {
         const vd = g.vertexData(inp[i]);
-        vd.x = x + 1.5;
+        vd.x = x;
         vd.y = i - (inp.length - 1) / 2;
     }
-    x += 3.0;
+    x += layerGap;
 
     for (const eLayer of eLayers) {
+        // First, have to compute the max width of this layer:
+        const layerWidth = eLayer.map(i => g.edgeData(i).width).reduce((x,y)=>Math.max(x,y));
+        x += layerWidth / 2;
         for (let i = 0; i < eLayer.length; i++) {
             const ed = g.edgeData(eLayer[i]);
             ed.x = x;
@@ -82,16 +157,16 @@ export function convexLayout(g: Graph, force: boolean = false): void {
         const vLayer = eLayer.flatMap(e => g.target(e));
         for (let i = 0; i < vLayer.length; i++) {
             const vd = g.vertexData(vLayer[i]);
-            vd.x = x + 0.7;
+            vd.x = x + layerWidth / 2 + layerGap / 2;
             vd.y = i - (vLayer.length - 1) / 2;
         }
-        x += 3.0;
+        x += layerWidth / 2 + layerGap;
     }
 
     const outp = [...g.outputs()];
     for (let i = 0; i < outp.length; i++) {
         const vd = g.vertexData(outp[i]);
-        vd.x = x - 1.5;
+        vd.x = x;
         vd.y = i - (outp.length - 1) / 2;
     }
 
@@ -99,6 +174,8 @@ export function convexLayout(g: Graph, force: boolean = false): void {
 
     // ----- Iterative y-coordinate relaxation -----
     for (let iter = 0; iter < NUM_ITERATIONS; iter++) {
+        // const temp = 1 - iter / NUM_ITERATIONS;
+
         // Step 1: update each edge's y from its source vertex positions
         for (const e of g.edges()) {
             const s = g.source(e);
@@ -118,18 +195,24 @@ export function convexLayout(g: Graph, force: boolean = false): void {
             const minGaps: number[] = [];
             for (let i = 0; i < eLayer.length - 1; i++) {
                 minGaps.push(
-                    (g.edgeData(eLayer[i]).boxSize() + g.edgeData(eLayer[i + 1]).boxSize()) * 0.5
+                    (g.edgeData(eLayer[i]).height + g.edgeData(eLayer[i + 1]).height) * 0.5
                 );
             }
             const positions = eLayer.map(e => g.edgeData(e).y);
+            // To prevent the layout "diagonalizing", expand uniformly to ensure minimum spacing
+            const prevAvgPosition = positions.reduce((x,y) => x + y) / positions.length;
             enforceMinSpacing(positions, minGaps);
+            const newAvgPosition = positions.reduce((x,y) => x + y) / positions.length;
+            const shift = prevAvgPosition - newAvgPosition;
             for (let i = 0; i < eLayer.length; i++) {
-                g.edgeData(eLayer[i]).y = positions[i];
+                g.edgeData(eLayer[i]).y = positions[i] + shift;
             }
         }
 
         // Step 3: update each vertex's y from its incident edges
         for (const v of g.vertices()) {
+            // Don't update boundary vertex positions:
+            // if (g.isBoundary(v)) continue;
             const inEdges = [...g.inEdges(v)];
             const outEdges = [...g.outEdges(v)];
             if (inEdges.length === 0 && outEdges.length === 0) continue;
@@ -159,30 +242,56 @@ export function convexLayout(g: Graph, force: boolean = false): void {
         }
 
         // Step 4: enforce minimum spacing of 1.0 between consecutive boundary vertices
+        // var prevAvgPosition : number | null = null
         for (const vList of [g.inputs(), g.outputs()]) {
             if (vList.length <= 1) continue;
             const positions = vList.map(v => g.vertexData(v).y);
             const minGaps = new Array<number>(vList.length - 1).fill(1.0);
             enforceMinSpacing(positions, minGaps);
+            // const newAvgPosition = positions.reduce((x,y) => x + y);
+            // const shift : number = prevAvgPosition ? (prevAvgPosition - newAvgPosition) : 0;
             for (let i = 0; i < vList.length; i++) {
-                g.vertexData(vList[i]).y = positions[i];
+                g.vertexData(vList[i]).y = positions[i] /* + temp * shift */;
             }
+            // prevAvgPosition = newAvgPosition + shift;
         }
     }
 
-    // ----- Centre the result -----
-    let yMin = Infinity;
-    let yMax = -Infinity;
-    for (const v of g.vertices()) {
-        const y = g.vertexData(v).y;
-        if (y < yMin) yMin = y;
-        if (y > yMax) yMax = y;
+    // Final pass to align midpoints as best as possible
+    var prevAvgPosition = average(g.inputs().map(v => g.vertexData(v).y));
+    for (const eLayer of eLayers) {
+        if (eLayer.length === 0) continue; // just in case
+        const vertPositionsIntoLayer = eLayer.flatMap(function (e) {
+            const inputs = g.source(e);
+            const num = inputs.length;
+            const y = g.edgeData(e).y;
+            return inputs.map((_, i) => y + (num <= 1 ? 0 : (i / (num - 1)) - 0.5))
+        });
+        const newAvgPosition = average(vertPositionsIntoLayer);
+        const diff = newAvgPosition ? (prevAvgPosition ?? 0) - newAvgPosition : 0;
+        for (const e of eLayer) {
+            const ed = g.edgeData(e);
+            ed.y += diff;
+            for (const v of g.target(e)) {
+                const vd = g.vertexData(v);
+                vd.y += diff;
+            }
+        }
+        const vertPositionsOutOfLayer = eLayer.flatMap(function (e) {
+            const inputs = g.target(e);
+            const num = inputs.length;
+            const y = g.edgeData(e).y;
+            return inputs.map((_, i) => y + (num <= 1 ? 0 : (i / (num - 1)) - 0.5))
+        });
+        prevAvgPosition = average(vertPositionsOutOfLayer);
     }
-    if (isFinite(yMin) && isFinite(yMax)) {
-        const yCenter = (yMin + yMax) / 2;
-        for (const v of g.vertices()) g.vertexData(v).y -= yCenter;
-        for (const e of g.edges()) g.edgeData(e).y -= yCenter;
+    const outputAvgPosition = average(g.outputs().map(v => g.vertexData(v).y));
+    const outputDiff = outputAvgPosition ? (prevAvgPosition ?? 0) - outputAvgPosition : 0;
+    for (const v of g.outputs()) {
+        g.vertexData(v).y += outputDiff
     }
+
+    centreGraph(g);
 
     // ----- Snap non-boundary target vertices to their incoming edge -----
     for (const e of g.edges()) {

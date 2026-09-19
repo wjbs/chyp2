@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {getTextWidth, SCALE} from './util.ts';
+
 export class GraphError extends Error {
     constructor(message: string) {
         super(message);
@@ -49,6 +51,8 @@ export class EData {
     highlight: boolean;
     x: number;
     y: number;
+    width : number;
+    height : number;
     s: number[];
     t: number[];
     fg: string;
@@ -61,6 +65,8 @@ export class EData {
         value: string = '',
         x: number = 0,
         y: number = 0,
+        width: number|null = null,
+        height: number|null = null,
         fg: string = '',
         bg: string = '',
         hyper: boolean = true
@@ -69,6 +75,11 @@ export class EData {
         this.highlight = false;
         this.x = x;
         this.y = y;
+        this.width = width ?? 
+            (value !== 'id' ? 
+                Math.max(1, getTextWidth(value) / (SCALE / 3.75) + 0.4) 
+                : 0);
+        this.height = height ?? (s.length <= 1 && t.length <= 1 ? 1 : 2);
         this.s = s;
         this.t = t;
         this.fg = fg;
@@ -78,16 +89,6 @@ export class EData {
 
     toString(): string {
         return `Edge: ${this.value} (${this.x}, ${this.y})`;
-    }
-
-    /**
-     * Returns the number of 'units' of width the box should have to display nicely.
-     *
-     * The rule is if both inputs and outputs are <= 1, draw as a small (size 1)
-     * box, otherwise draw as a larger (size 2) box.
-     */
-    boxSize(): number {
-        return this.s.length <= 1 && this.t.length <= 1 ? 1 : 2;
     }
 }
 
@@ -133,7 +134,7 @@ export class Graph {
             g.vdata.set(k, vd2);
         }
         for (const [k, ed] of this.edata) {
-            const ed2 = new EData([...ed.s], [...ed.t], ed.value, ed.x, ed.y, ed.fg, ed.bg, ed.hyper);
+            const ed2 = new EData([...ed.s], [...ed.t], ed.value, ed.x, ed.y, ed.width, ed.height, ed.fg, ed.bg, ed.hyper);
             ed2.highlight = ed.highlight;
             g.edata.set(k, ed2);
         }
@@ -234,6 +235,8 @@ export class Graph {
         value: string = '',
         x: number = 0,
         y: number = 0,
+        width: number|null = null,
+        height: number|null = null,
         fg: string = '',
         bg: string = '',
         hyper: boolean = true,
@@ -247,7 +250,7 @@ export class Graph {
             e = name;
             this.eindex = Math.max(name, this.eindex) + 1;
         }
-        this.edata.set(e, new EData(s, t, value, x, y, fg, bg, hyper));
+        this.edata.set(e, new EData(s, t, value, x, y, width, height, fg, bg, hyper));
         for (const v of s) this.vdata.get(v)!.outEdges.add(e);
         for (const v of t) this.vdata.get(v)!.inEdges.add(e);
         return e;
@@ -383,8 +386,8 @@ export class Graph {
         const vYs1 = [...this.vdata.values()].map(vd => vd.y + 0.5);
         const eXs0 = [...this.edata.values()].map(ed => ed.x - 1.0);
         const eXs1 = [...this.edata.values()].map(ed => ed.x + 1.0);
-        const eYs0 = [...this.edata.values()].map(ed => ed.y - (ed.boxSize() + 1) * 0.5);
-        const eYs1 = [...this.edata.values()].map(ed => ed.y + (ed.boxSize() + 1) * 0.5);
+        const eYs0 = [...this.edata.values()].map(ed => ed.y - (ed.height + 1) * 0.5);
+        const eYs1 = [...this.edata.values()].map(ed => ed.y + (ed.height + 1) * 0.5);
         const minX = Math.min(...vXs0, ...eXs0);
         const maxX = Math.max(...vXs1, ...eXs1);
         const minY = Math.min(...vYs0, ...eYs0);
@@ -526,7 +529,8 @@ export class Graph {
             g.addEdge(
                 ed.s.map(v => vmap.get(v)!),
                 ed.t.map(v => vmap.get(v)!),
-                ed.value, ed.x, ed.y - minOther + 1, ed.fg, ed.bg, ed.hyper
+                ed.value, ed.x, ed.y - minOther + 1, 
+                ed.width, ed.height, ed.fg, ed.bg, ed.hyper
             );
         }
 
@@ -563,7 +567,8 @@ export class Graph {
             g.addEdge(
                 ed.s.map(v => vmap.get(v)!),
                 ed.t.map(v => vmap.get(v)!),
-                ed.value, ed.x - minOther, ed.y, ed.fg, ed.bg, ed.hyper
+                ed.value, ed.x - minOther, ed.y, 
+                ed.width, ed.height, ed.fg, ed.bg, ed.hyper
             );
         }
 
@@ -618,6 +623,45 @@ export class Graph {
     }
 
     /**
+     * For each identity edge in the graph, merge the vertices.
+     * Returns true if the graph is changed, and false otherwise.
+     */
+    private removeIdsOnce(onlyInternal : Boolean): Boolean {
+        let usedVertices = new Set<number>;
+        let toQuotient : [number[],number[]][] = [];
+        let toRemove : number[] = [];
+        for (const [i,ed] of this.edata.entries()) {
+            if (ed.value === 'id' && ed.s.length === ed.t.length) {
+                if ((ed.s.concat(ed.t)).every(
+                        v => !usedVertices.has(v) &&
+                                onlyInternal ? this.isBoundary(v) : true)) {
+                    toQuotient.push([ed.s, ed.t]);
+                    (ed.s.concat(ed.t)).forEach(e => usedVertices.add(e));
+                    toRemove.push(i);
+                }
+            }
+        }
+        if (toRemove.length === 0) {
+            return false;
+        }
+        for (const i of toRemove) {
+            this.removeEdge(i);
+        }
+        for (const [s, t] of toQuotient) {
+            const n = s.length;
+            for (let i = 0; i < n; i++) {
+                this.mergeVertices(s[i], t[i]);
+            }
+        }
+        return true
+    }
+    removeIds(onlyInternal=true): Boolean {
+        let changed = false;
+        while(this.removeIdsOnce(onlyInternal)) {changed = true};
+        return changed
+    }
+
+    /**
      * Returns a graph with a single hyperedge and the given number of inputs/outputs.
      *
      * @param value    The label for the hyperedge
@@ -626,11 +670,12 @@ export class Graph {
      * @param fg       Optional foreground color as a 6-digit RGB hex code
      * @param bg       Optional background color as a 6-digit RGB hex code
      */
-    public static gen(value: string, arity: number, coarity: number, fg: string = '', bg: string = ''): Graph {
+    public static gen(value: string, arity: number, coarity: number, 
+            width: number|null = null, height: number|null = null, fg: string = '', bg: string = ''): Graph {
         const g = new Graph();
         const inputs = Array.from({ length: arity }, (_, i) => g.addVertex(-1.5, i - (arity - 1) / 2));
         const outputs = Array.from({ length: coarity }, (_, i) => g.addVertex(1.5, i - (coarity - 1) / 2));
-        g.addEdge(inputs, outputs, value, 0, 0, fg, bg);
+        g.addEdge(inputs, outputs, value, 0, 0, width, height, fg, bg);
         g.setInputs(inputs);
         g.setOutputs(outputs);
         return g;
@@ -689,6 +734,8 @@ export function graphFromJson(jsonString: string): Graph {
             ed['value'] !== undefined ? String(ed['value']) : '',
             ed['x'] !== undefined ? parseFloat(ed['x'] as string) : 0.0,
             ed['y'] !== undefined ? parseFloat(ed['y'] as string) : 0.0,
+            ed['width'] !== undefined ? parseFloat(ed['width'] as string) : null,
+            ed['height'] !== undefined ? parseFloat(ed['height'] as string) : null,
             '',
             '',
             ed['hyper'] !== undefined ? Boolean(ed['hyper']) : true,
