@@ -1,6 +1,8 @@
 export declare const SCALE = 100;
 export declare function lineNumberForPosition(source: string, pos: number): number;
-export declare function getTextWidth(text: string): number;
+export declare var USE_DOM_FOR_TEXT_WIDTH: Boolean;
+export declare function approxTextWidth(s: string): number;
+export declare function getTextWidth(s: string): number;
 export declare function mkBezierC(p1x: number, p1y: number, cp1x: number, cp1y: number, cp2x: number, cp2y: number, p2x: number, p2y: number): string;
 export declare function curveBetween(p1x: number, p1y: number, p2x: number, p2y: number): string;
 export declare function curveTo(p1x: number, p1y: number, p2x: number, p2y: number): string;
