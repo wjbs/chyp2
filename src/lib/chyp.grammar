@@ -61,7 +61,7 @@ atomicTerm {
   Ref
 }
 
-Perm { kw<"sw"> "[" Nat (Comma Nat)* "]" }
+Perm { kw<"sw"> ("[" Nat (Comma Nat)* "]")? }
 
 Tactic {
   (kw<"rule"> | Minus? Identifier) ("(" (TacticArg (Comma TacticArg)*)? ")")?
