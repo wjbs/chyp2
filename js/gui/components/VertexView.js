@@ -50,7 +50,7 @@ function svgOfMonogamousVertex(uuid, g, v, inedge, outedge) {
     const curve = curveOfMonogamousVertex(g, v, inedge, outedge);
     const val = isNontrivialValue(g.vertexData(v).value)
         ?? (window.debug_random_sizes ? ["1", "m", "n", "m * n"][v % 4] : "");
-    return _jsxs("g", { id: `v${v}${uuid}`, children: [_jsx("path", { d: curve, id: `v${v}p${uuid}`, fill: "none", className: "vertex-path", "stroke-width": 0.01 * SCALE }, `${v}, ${inedge}, ${outedge}`), val !== null ? (_jsx("text", { style: `fill:black;font-size:${0.15 * SCALE};`, transform: `translate(0, -${SCALE * 0.03})`, children: _jsx("textPath", { href: `#v${v}p${uuid}`, startOffset: "5", children: val }) })) : null] });
+    return _jsxs("g", { id: `v${v}${uuid}`, children: [_jsx("path", { d: curve, id: `v${v}p${uuid}`, fill: "none", stroke: "black", "stroke-width": 0.01 * SCALE }, `${v}, ${inedge}, ${outedge}`), val !== null ? (_jsx("text", { style: `fill:black;font-size:${0.15 * SCALE};`, transform: `translate(0, -${SCALE * 0.03})`, children: _jsx("textPath", { href: `#v${v}p${uuid}`, startOffset: "5", children: val }) })) : null] });
 }
 function pathForEdge(g, v, e, isInEdge) {
     const curve = curveForEdge(g, v, e, isInEdge);

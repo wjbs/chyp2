@@ -41,6 +41,6 @@ export function EdgeView({ uuid, graph, edge }) {
                     }
                     const val = isNontrivialValue(sv.value)
                         ?? (window.debug_random_sizes ? ["1", "m", "n", "m * n"][svi % 4] : "");
-                    return _jsxs("g", { id: `id${edge}{uuid}`, children: [_jsx("path", { d: curveBetween(sx * SCALE, sy * SCALE, tx * SCALE, ty * SCALE), id: `idp${edge}${uuid}`, fill: "none", className: "id-path", "stroke-width": 0.01 * SCALE }, svi), _jsx("text", { style: `fill:black;font-size:${0.2 * SCALE};`, transform: `translate(0, -${SCALE * 0.03})`, children: _jsx("textPath", { href: `#idp${edge}${uuid}`, startOffset: "5", children: val }) })] });
+                    return _jsxs("g", { id: `id${edge}{uuid}`, children: [_jsx("path", { d: curveBetween(sx * SCALE, sy * SCALE, tx * SCALE, ty * SCALE), id: `idp${edge}${uuid}`, fill: "none", stroke: "black", "stroke-width": 0.01 * SCALE }, svi), _jsx("text", { style: `fill:black;font-size:${0.2 * SCALE};`, transform: `translate(0, -${SCALE * 0.03})`, children: _jsx("textPath", { href: `#idp${edge}${uuid}`, startOffset: "5", children: val }) })] });
                 })] }));
 }
