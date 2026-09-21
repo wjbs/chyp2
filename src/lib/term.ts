@@ -122,6 +122,19 @@ export class Par extends Term {
     }
 }
 
+
+// Count the number of inversions that occur between `vs` and `ws`, i.e.,
+// the number of `v` in `vs` and `w` in `ws` with `w` occuring in `ordering` before `v`
+function inversionsBetween(ordering : number[], vs : number[], ws : number[]) : number {
+    return vs.reduce((acc, v) => acc + 
+        ws.filter(w => ordering.indexOf(w) < ordering.indexOf(v)).length, 0);
+}
+
+function sortEdges(ordering : number[], vs : number[], ws : number[]) : number {
+    return inversionsBetween(ordering, vs, ws) - inversionsBetween(ordering, ws, vs);
+}
+
+
 /**
  * Decompose a graph into regular and singular layers.
  *
@@ -133,6 +146,7 @@ export function layerDecomp(g: Graph): number[][] {
     const eLayers: number[][] = [];
     let vLayer: number[] = [];
     const vPlaced = new Set<number>();
+    const vCanBePlaced = new Map<number, number>();
 
     // Mark all inputs as placed; if an input is also an output, insert an id edge to break the overlap
     let outputs = new Set(g.outputs());
@@ -144,12 +158,60 @@ export function layerDecomp(g: Graph): number[][] {
 
     const newIds = new Set<number>();
     const edges = new Set(g.edges());
+    const sourcelessEdges = new Set<number>();
+
+    // Determine the vertices that are available for placement at any point
+    // (because they are in the target of an edge with empty source)
+    for (const e of [...edges]) {
+        const ed = g.edgeData(e);
+        if (ed.s.length === 0) {
+            sourcelessEdges.add(e);
+            edges.delete(e);
+            for (const v of ed.t) {
+                vCanBePlaced.set(v, e);
+            }
+        }
+    }
+
+    function addToLastLayer(e : number){
+        const l = eLayers.pop();
+        if (l === undefined) {
+            const newLayer = [e];
+            for (const v of [...g.inputs()]) {
+                // Insert identities for all inputs
+                const newEdge = g.insertIdAfter(v);
+                newLayer.push(newEdge);
+                vPlaced.add(g.target(newEdge)[0]);
+            }
+            eLayers.push(newLayer);
+        }
+        else {
+            if (!(l.includes(e))) {
+                l.push(e);
+            }
+            eLayers.push(l);
+        }
+    }
 
     while (edges.size > 0) {
-        // collect edges whose entire source is already placed
+        // collect edges whose entire source is already placed, or could be using sourceless edges
         const ready = new Set<number>();
         for (const e of edges) {
-            if (g.source(e).every(v => vPlaced.has(v))) ready.add(e);
+            const s = g.source(e);
+            if (s.length !== 0 && s.every(v => vPlaced.has(v)||vCanBePlaced.has(v))) ready.add(e);
+        }
+
+        // add the necessary vertices from sourceless edges to the previous layer
+        for (const e of ready) {
+            const ed = g.edgeData(e);
+            for (const v of ed.s) {
+                const edgeDependency = vCanBePlaced.get(v);
+                if (edgeDependency !== undefined) {
+                    addToLastLayer(edgeDependency);
+                    vPlaced.add(v);
+                    sourcelessEdges.delete(edgeDependency);
+                }
+            }
         }
 
         // for each vertex in the current layer, insert an id edge if the vertex is a current
@@ -186,47 +248,51 @@ export function layerDecomp(g: Graph): number[][] {
         }
     }
 
-    // Minimise crossings: forward pass (it=0) then backward pass (it=1)
-    for (let it = 0; it < 2; it++) {
-        const indices = it === 0
-            ? Array.from({ length: eLayers.length }, (_, i) => i)
-            : Array.from({ length: eLayers.length }, (_, i) => eLayers.length - 1 - i);
-
-        for (const j of indices) {
-            const inp: number[] = j > 0
-                ? eLayers[j - 1].flatMap(e => g.target(e))
-                : [...g.inputs()];
-            const inpPos = new Map<number, number>(inp.map((v, i) => [v, i / inp.length]));
-
-            let outpPos: Map<number, number> | undefined;
-            if (it !== 0) {
-                const outp: number[] = j < eLayers.length - 1
-                    ? eLayers[j + 1].flatMap(e => g.source(e))
-                    : [...g.outputs()];
-                outpPos = new Map(outp.map((v, i) => [v, i / outp.length]));
-            }
-
-            const ePos = new Map<number, number>();
-            for (const e of eLayers[j]) {
-                const src = g.source(e);
-                let pos = src.length !== 0
-                    ? src.reduce((sum, v) => sum + inpPos.get(v)!, 0) / src.length
-                    : 0;
-
-                if (outpPos !== undefined) {
-                    const tgt = g.target(e);
-                    pos += tgt.length !== 0
-                        ? 2 * tgt.reduce((sum, v) => sum + outpPos!.get(v)!, 0) / tgt.length
-                        : 0;
-                }
-                ePos.set(e, pos);
-            }
-
-            eLayers[j].sort((a, b) => ePos.get(a)! - ePos.get(b)!);
-        }
+    const unplacedSourceless = [... sourcelessEdges];
+    if (unplacedSourceless.length !== 0) {
+        eLayers.push(unplacedSourceless);
     }
 
-    return eLayers;
+    // Minimise crossings by sorting with respect to an inversions metric
+    const eLayersWithData : [number, number[], number[]][][]
+        = []; // Each entry is [eLayerWithData],
+            // where each entry of [eLayerWithData] is [e, s, t]
+    
+    for (let i = 0; i < eLayers.length; i ++) {
+        const es : number[] = eLayers[i];
+        const esWithData : [number, number[], number[]][] = es.map(e => [e, g.source(e), g.target(e)]);
+        eLayersWithData.push(esWithData);
+    }
+
+    // Forward pass
+    var verticesOfPrevLayer : number[] = g.inputs();
+    for (let i = 0; i < eLayers.length; i ++) {
+        const esWithData : [number, number[], number[]][] = eLayersWithData[i];
+        // console.log('order:', [...verticesOfPrevLayer], 'sorting:', [...esWithData]);
+        esWithData.sort(([_e1, s1, _t1], [_e2, s2, _t2]) =>
+            sortEdges(verticesOfPrevLayer, s1, s2));
+        // console.log('sorted as:', [...esWithData], 'value:', [...eLayersWithData[i]]);
+        eLayersWithData[i] = esWithData;
+        verticesOfPrevLayer = esWithData.reduce<number[]>((vs, [_e, _s, t]) => vs.concat(t), [])
+    }
+
+    // Backwards pass
+    var verticesOfNextLayer : number[] = g.outputs();
+    for (let i = eLayers.length - 1; 0 <= i; i --) {
+        const esWithData : [number, number[], number[]][] = eLayersWithData[i];
+        const verticesOfPrevLayer : number[] = i === 0 ? g.inputs() 
+            : eLayersWithData[i].reduce<number[]>((vs, [_e, _s, t]) => vs.concat(t), [])
+        esWithData.sort(function ([_e1, s1, t1], [_e2, s2, t2]) {
+            let ssort = sortEdges(verticesOfPrevLayer, s1, s2);
+            if (ssort !== 0) {
+                return ssort
+            }
+            return sortEdges(verticesOfNextLayer, t1, t2)});
+        eLayersWithData[i] = esWithData;
+        verticesOfNextLayer = esWithData.reduce<number[]>((vs, [_e, s, _t]) => vs.concat(s), [])
+    }
+
+    return eLayersWithData.map(es => es.map(([e, _s, _t]) => e));
 }
 
 /** Convert a permutation to its string representation */

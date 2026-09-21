@@ -187,6 +187,17 @@ export function convexLayout(g: Graph, force: boolean = false, NUM_ITERATIONS: n
                 }
                 g.edgeData(e).y = sum / s.length;
             }
+            else {
+                const t = g.target(e);
+                if (t.length > 0) {
+                    let sum = 0;
+                    for (let j = 0; j < t.length; j++) {
+                        const yShift = t.length <= 1 ? 0 : (j / (t.length - 1)) - 0.5;
+                        sum += g.vertexData(t[j]).y - yShift;
+                    }
+                    g.edgeData(e).y = sum / t.length;
+                }
+            }
         }
 
         // Step 2: enforce minimum spacing between edges in the same layer
@@ -261,6 +272,13 @@ export function convexLayout(g: Graph, force: boolean = false, NUM_ITERATIONS: n
     var prevAvgPosition = average(g.inputs().map(v => g.vertexData(v).y));
     for (const eLayer of eLayers) {
         if (eLayer.length === 0) continue; // just in case
+        if (eLayer.length === 1 && g.source(eLayer[0]).length === 0) {
+            const e = eLayer[0];
+            const inputs = g.target(e)
+            const num = inputs.length;
+            const y = g.edgeData(e).y;
+            prevAvgPosition = average(inputs.map((_, i) => y + (num <= 1 ? 0 : (i / (num - 1)) - 0.5)));
+        };
         const vertPositionsIntoLayer = eLayer.flatMap(function (e) {
             const inputs = g.source(e);
             const num = inputs.length;

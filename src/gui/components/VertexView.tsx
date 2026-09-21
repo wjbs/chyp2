@@ -3,6 +3,7 @@ import { SCALE, curveBetween, curveTo, vertexyShift } from "../../lib/util";
 
 
 interface VertexViewProps {
+    uuid: string;
     graph: Graph;
     vertex: number;
 }
@@ -56,20 +57,38 @@ function curveForEdge(g : Graph, v : number, e : number, isInEdge : Boolean) {
     return curveTo(xpos * SCALE, ypos * SCALE, vd.x * SCALE, vd.y * SCALE);
 }
 
-function svgOfMonogamousVertex(g : Graph, v : number, 
+function isNontrivialValue(value : unknown) : string | null {
+    if (value === '' || value === '1' || value === 1) {
+        return null
+    }
+    else {
+        return (value as any).toString();
+    }
+}
+
+function svgOfMonogamousVertex(uuid: string, g : Graph, v : number, 
         inedge : number|null, outedge : number|null) {
     const curve = curveOfMonogamousVertex(g, v, inedge, outedge);
-    return <g id={`${v}`}>
-        <path key={`${v}, ${inedge}, ${outedge}`} d={curve}
+    const val = isNontrivialValue(g.vertexData(v).value) 
+        ?? ["1", "m", "n", "m * n"][v % 4];
+
+    return <g id={`v${v}${uuid}`}>
+        <path key={`${v}, ${inedge}, ${outedge}`} d={curve} id={`v${v}p${uuid}`}
                 fill="none"
                 stroke="black"
                 stroke-width={0.01 * SCALE} />
+        {val !== null ? (
+            <text style={`fill:black;font-size:${0.2 * SCALE};`}
+                transform={`translate(0, -${SCALE * 0.03})`}>
+                <textPath href={`#v${v}p${uuid}`} startOffset="5" >{val}</textPath>
+            </text>
+        ) : null}
     </g>
 }
 
 function pathForEdge(g : Graph, v : number, e : number, isInEdge : Boolean) {
     const curve = curveForEdge(g, v, e, isInEdge);
-    return <path key={`${v}, ${e}`} d={curve}
+    return <path key={`${v}, ${e}`} d={curve} id={`v${v}p${e}`}
                 fill="none"
                 stroke="black"
                 stroke-width={0.01 * SCALE} />
@@ -83,9 +102,9 @@ function circleOfNonmonogamousVertex(g : Graph, v : number
         stroke="none" fill="black" stroke-width="0"/>
 }
 
-function svgOfNonmonogamousVertex(g : Graph, v : number, 
+function svgOfNonmonogamousVertex(uuid : string, g : Graph, v : number, 
         inedges : number[], outedges : number[]) {
-    return <g id={`${v}`}>
+    return <g id={`v${v}${uuid}`}>
         {inedges.map(e => pathForEdge(g, v, e, true))}
         {outedges.map(e => pathForEdge(g, v, e, false))}
         {circleOfNonmonogamousVertex(g, v)}
@@ -94,7 +113,7 @@ function svgOfNonmonogamousVertex(g : Graph, v : number,
 
 
 
-export function VertexView({ graph, vertex }: VertexViewProps) {
+export function VertexView({ uuid, graph, vertex }: VertexViewProps) {
     const vertexData = graph.vertexData(vertex);
     const inEdges : number[] = Array.from(vertexData.inEdges.values());
     const outEdges : number[] = Array.from(vertexData.outEdges.values());
@@ -108,11 +127,11 @@ export function VertexView({ graph, vertex }: VertexViewProps) {
             ((inEdge !== null && graph.edgeData(inEdge).value === 'id') ||
             (outEdge !== null && graph.edgeData(outEdge).value === 'id')) {
             // Identity edges draw themselves
-            return <g id={`${vertex}`}/>;
+            return <g id={`v${vertex}`}/>;
         }
-        return svgOfMonogamousVertex(graph, vertex, inEdge, outEdge);
+        return svgOfMonogamousVertex(uuid, graph, vertex, inEdge, outEdge);
     }
     else {
-        return svgOfNonmonogamousVertex(graph, vertex, inEdges, outEdges);
+        return svgOfNonmonogamousVertex(uuid, graph, vertex, inEdges, outEdges);
     }
 }

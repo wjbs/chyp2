@@ -384,8 +384,8 @@ export class Graph {
         const vXs1 = [...this.vdata.values()].map(vd => vd.x + 0.5);
         const vYs0 = [...this.vdata.values()].map(vd => vd.y - 0.5);
         const vYs1 = [...this.vdata.values()].map(vd => vd.y + 0.5);
-        const eXs0 = [...this.edata.values()].map(ed => ed.x - 1.0);
-        const eXs1 = [...this.edata.values()].map(ed => ed.x + 1.0);
+        const eXs0 = [...this.edata.values()].map(ed => ed.x - (ed.width + 1) * 0.5);
+        const eXs1 = [...this.edata.values()].map(ed => ed.x + (ed.width + 1) * 0.5);
         const eYs0 = [...this.edata.values()].map(ed => ed.y - (ed.height + 1) * 0.5);
         const eYs1 = [...this.edata.values()].map(ed => ed.y + (ed.height + 1) * 0.5);
         const minX = Math.min(...vXs0, ...eXs0);
@@ -682,13 +682,45 @@ export class Graph {
     }
 
     /**
-     * Returns a graph corresponding to the given permutation.
+     * Returns a graph with a single hyperedge and the given number of inputs/outputs.
+     *
+     * @param value    The label for the hyperedge
+     * @param domain   The values of input vertices connected to the source of the edge
+     * @param codomain The values of output vertices connected to the target of the edge
+     * @param fg       Optional foreground color as a 6-digit RGB hex code
+     * @param bg       Optional background color as a 6-digit RGB hex code
+     */
+    public static mgen(value: string, domain: unknown[], codomain: unknown[], 
+            width: number|null = null, height: number|null = null, fg: string = '', bg: string = ''): Graph {
+        const g = new Graph();
+        const arity = domain.length;
+        const coarity = codomain.length;
+        const inputs = domain.map((val, i) => g.addVertex(-1.5, i - (arity - 1) / 2, val));
+        const outputs = codomain.map((val, i) => g.addVertex(1.5, i - (coarity - 1) / 2, val));
+        g.addEdge(inputs, outputs, value, 0, 0, width, height, fg, bg);
+        g.setInputs(inputs);
+        g.setOutputs(outputs);
+        return g;
+    }
+
+    /**
+     * Returns a graph corresponding to the given sized permutation.
      *
      * The permutation is given as a list [x0,..,x(n-1)], interpreted as { x0 -> 0, x1 -> 1, ..., x(n-1) -> n-1 }.
      * Input xj is mapped to the same vertex as output j.
      *
-     * @param p A permutation as an n-element list of integers from 0 to n-1
+     * @param p A permutation as an n-element list of integers from 0 to n-1, along with their values
      */
+    public static mperm(p: [number,unknown][]): Graph {
+        const g = new Graph();
+        const size = p.length;
+        const inputs = Array.from({ length: size }, (_, i) => g.addVertex(0, i - (size - 1) / 2, p.find(([j, _]) => i === j)![1]));
+        const outputs = p.map(([i, _]) => inputs[i]);
+        g.setInputs(inputs);
+        g.setOutputs(outputs);
+        return g;
+    }
+    
     public static perm(p: number[]): Graph {
         const g = new Graph();
         const size = p.length;

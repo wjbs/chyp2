@@ -2,12 +2,13 @@ import type { Graph } from "../../lib/graph";
 import { SCALE, curveBetween, vertexyShift } from "../../lib/util";
 
 interface EdgeViewProps {
+    uuid: String;
     graph: Graph;
     edge: number;
 }
 
 
-export function EdgeView({ graph, edge }: EdgeViewProps) {
+export function EdgeView({ uuid, graph, edge }: EdgeViewProps) {
     const edgeData = graph.edgeData(edge);
 
     // function pathFor(v: number, i: number, src: boolean): string {
@@ -23,7 +24,7 @@ export function EdgeView({ graph, edge }: EdgeViewProps) {
     //     return curveBetween(p1x, p1y, p2x, p2y);
     // }
 
-    return (<g id={`${edge}`}>
+    return (<g id={`e${edge}${uuid}`}>
         {(edgeData.value !== 'id') ?
             <g>
                 <rect
@@ -82,7 +83,7 @@ export function EdgeView({ graph, edge }: EdgeViewProps) {
             return <path key={svi} d={curveBetween(sx * SCALE, sy * SCALE, 
                     tx * SCALE, ty * SCALE)}
                 fill="none"
-                stroke="black"
+                stroke="blue"
                 stroke-width={0.01 * SCALE} />
             })}
     </g>);
