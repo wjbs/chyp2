@@ -19,20 +19,15 @@ export declare class EData {
     highlight: boolean;
     x: number;
     y: number;
+    width: number;
+    height: number;
     s: number[];
     t: number[];
     fg: string;
     bg: string;
     hyper: boolean;
-    constructor(s?: number[], t?: number[], value?: string, x?: number, y?: number, fg?: string, bg?: string, hyper?: boolean);
+    constructor(s?: number[], t?: number[], value?: string, x?: number, y?: number, width?: number | null, height?: number | null, fg?: string, bg?: string, hyper?: boolean);
     toString(): string;
-    /**
-     * Returns the number of 'units' of width the box should have to display nicely.
-     *
-     * The rule is if both inputs and outputs are <= 1, draw as a small (size 1)
-     * box, otherwise draw as a larger (size 2) box.
-     */
-    boxSize(): number;
 }
 /**
  * A hypergraph with boundaries.
@@ -98,7 +93,7 @@ export declare class Graph {
      * @param hyper Hint to the GUI about how to draw this edge
      * @param name  An optional name; if -1, the name is assigned automatically
      */
-    addEdge(s: number[], t: number[], value?: string, x?: number, y?: number, fg?: string, bg?: string, hyper?: boolean, name?: number): number;
+    addEdge(s: number[], t: number[], value?: string, x?: number, y?: number, width?: number | null, height?: number | null, fg?: string, bg?: string, hyper?: boolean, name?: number): number;
     /**
      * Remove a vertex.
      *
@@ -168,6 +163,12 @@ export declare class Graph {
     /** Clear the `highlight` flag for all vertices and edges */
     unhighlight(): void;
     /**
+     * For each identity edge in the graph, merge the vertices.
+     * Returns true if the graph is changed, and false otherwise.
+     */
+    private removeIdsOnce;
+    removeIds(onlyInternal?: boolean): Boolean;
+    /**
      * Returns a graph with a single hyperedge and the given number of inputs/outputs.
      *
      * @param value    The label for the hyperedge
@@ -176,15 +177,26 @@ export declare class Graph {
      * @param fg       Optional foreground color as a 6-digit RGB hex code
      * @param bg       Optional background color as a 6-digit RGB hex code
      */
-    static gen(value: string, arity: number, coarity: number, fg?: string, bg?: string): Graph;
+    static gen(value: string, arity: number, coarity: number, width?: number | null, height?: number | null, fg?: string, bg?: string): Graph;
     /**
-     * Returns a graph corresponding to the given permutation.
+     * Returns a graph with a single hyperedge and the given number of inputs/outputs.
+     *
+     * @param value    The label for the hyperedge
+     * @param domain   The values of input vertices connected to the source of the edge
+     * @param codomain The values of output vertices connected to the target of the edge
+     * @param fg       Optional foreground color as a 6-digit RGB hex code
+     * @param bg       Optional background color as a 6-digit RGB hex code
+     */
+    static mgen(value: string, domain: unknown[], codomain: unknown[], width?: number | null, height?: number | null, fg?: string, bg?: string): Graph;
+    /**
+     * Returns a graph corresponding to the given sized permutation.
      *
      * The permutation is given as a list [x0,..,x(n-1)], interpreted as { x0 -> 0, x1 -> 1, ..., x(n-1) -> n-1 }.
      * Input xj is mapped to the same vertex as output j.
      *
-     * @param p A permutation as an n-element list of integers from 0 to n-1
+     * @param p A permutation as an n-element list of integers from 0 to n-1, along with their values
      */
+    static mperm(p: [number, unknown][]): Graph;
     static perm(p: number[]): Graph;
     /**
      * Returns a graph corresponding to the identity map.
@@ -195,3 +207,8 @@ export declare class Graph {
 }
 /** Load a graph from a JSON string */
 export declare function graphFromJson(jsonString: string): Graph;
+/**
+ * Determine if a vertex value is nontrivial, and return it
+ * (as a string) if so. Returns `null` for trivial values.
+ */
+export declare function isNontrivialValue(value: unknown): string | null;

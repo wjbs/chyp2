@@ -88,7 +88,7 @@ export function dpo(r, m) {
     // Add RHS edges into h, connected via m1.vmap
     for (const e of r.rhs.edges()) {
         const ed = r.rhs.edgeData(e);
-        const e1 = h.addEdge(ed.s.map(v => m1.vmap.get(v)), ed.t.map(v => m1.vmap.get(v)), ed.value, ed.x, ed.y, ed.fg, ed.bg, ed.hyper);
+        const e1 = h.addEdge(ed.s.map(v => m1.vmap.get(v)), ed.t.map(v => m1.vmap.get(v)), ed.value, ed.x, ed.y, ed.width, ed.height, ed.fg, ed.bg, ed.hyper);
         m1.emap.set(e, e1);
         m1.eimg.add(e1);
     }

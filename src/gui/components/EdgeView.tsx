@@ -82,7 +82,7 @@ export function EdgeView({ uuid, graph, edge }: EdgeViewProps) {
                 }
             }
             const val = isNontrivialValue(sv.value) 
-                ?? ((window as any).debug_random_sizes ? ["1", "m", "n", "m * n"][v % 4] : "");
+                ?? ((window as any).debug_random_sizes ? ["1", "m", "n", "m * n"][svi % 4] : "");
             return <g id={`id${edge}{uuid}`}>
                 <path key={svi} d={curveBetween(sx * SCALE, sy * SCALE, 
                     tx * SCALE, ty * SCALE)}

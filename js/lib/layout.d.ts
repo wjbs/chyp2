@@ -19,4 +19,4 @@ import { Graph } from './graph.ts';
  * After iteration the whole diagram is centred and non-boundary target vertices are
  * snapped to their incoming edge.
  */
-export declare function convexLayout(g: Graph, force?: boolean): void;
+export declare function convexLayout(g: Graph, force?: boolean, NUM_ITERATIONS?: number): void;

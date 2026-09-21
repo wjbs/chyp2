@@ -192,12 +192,12 @@ export class ChypReader {
             return new Term();
         const perm = [];
         this.c.firstChild(); // sw
-        while (this.c.nextSibling()) {
+        while (this.c.nextSibling() && this.c.from !== this.c.to) {
             perm.push(this.readNat());
             this.c.nextSibling(); // comma or end
         }
         this.c.parent();
-        return new Perm(perm);
+        return new Perm(perm.length === 0 ? [1, 0] : perm);
     }
     readTactic(part) {
         if (!this.c)

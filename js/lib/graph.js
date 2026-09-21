@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { getTextWidth, SCALE } from "./util.js";
 export class GraphError extends Error {
     constructor(message) {
         super(message);
@@ -45,16 +46,23 @@ export class EData {
     highlight;
     x;
     y;
+    width;
+    height;
     s;
     t;
     fg;
     bg;
     hyper;
-    constructor(s = [], t = [], value = '', x = 0, y = 0, fg = '', bg = '', hyper = true) {
+    constructor(s = [], t = [], value = '', x = 0, y = 0, width = null, height = null, fg = '', bg = '', hyper = true) {
         this.value = value;
         this.highlight = false;
         this.x = x;
         this.y = y;
+        this.width = width ??
+            (value !== 'id' ?
+                Math.max(1, getTextWidth(value) / (SCALE / 3.75) + 0.4)
+                : 0);
+        this.height = height ?? (s.length <= 1 && t.length <= 1 ? 1 : 2);
         this.s = s;
         this.t = t;
         this.fg = fg;
@@ -63,15 +71,6 @@ export class EData {
     }
     toString() {
         return `Edge: ${this.value} (${this.x}, ${this.y})`;
-    }
-    /**
-     * Returns the number of 'units' of width the box should have to display nicely.
-     *
-     * The rule is if both inputs and outputs are <= 1, draw as a small (size 1)
-     * box, otherwise draw as a larger (size 2) box.
-     */
-    boxSize() {
-        return this.s.length <= 1 && this.t.length <= 1 ? 1 : 2;
     }
 }
 /**
@@ -114,7 +113,7 @@ export class Graph {
             g.vdata.set(k, vd2);
         }
         for (const [k, ed] of this.edata) {
-            const ed2 = new EData([...ed.s], [...ed.t], ed.value, ed.x, ed.y, ed.fg, ed.bg, ed.hyper);
+            const ed2 = new EData([...ed.s], [...ed.t], ed.value, ed.x, ed.y, ed.width, ed.height, ed.fg, ed.bg, ed.hyper);
             ed2.highlight = ed.highlight;
             g.edata.set(k, ed2);
         }
@@ -198,7 +197,7 @@ export class Graph {
      * @param hyper Hint to the GUI about how to draw this edge
      * @param name  An optional name; if -1, the name is assigned automatically
      */
-    addEdge(s, t, value = '', x = 0, y = 0, fg = '', bg = '', hyper = true, name = -1) {
+    addEdge(s, t, value = '', x = 0, y = 0, width = null, height = null, fg = '', bg = '', hyper = true, name = -1) {
         let e;
         if (name === -1) {
             e = this.eindex;
@@ -208,7 +207,7 @@ export class Graph {
             e = name;
             this.eindex = Math.max(name, this.eindex) + 1;
         }
-        this.edata.set(e, new EData(s, t, value, x, y, fg, bg, hyper));
+        this.edata.set(e, new EData(s, t, value, x, y, width, height, fg, bg, hyper));
         for (const v of s)
             this.vdata.get(v).outEdges.add(e);
         for (const v of t)
@@ -332,10 +331,10 @@ export class Graph {
         const vXs1 = [...this.vdata.values()].map(vd => vd.x + 0.5);
         const vYs0 = [...this.vdata.values()].map(vd => vd.y - 0.5);
         const vYs1 = [...this.vdata.values()].map(vd => vd.y + 0.5);
-        const eXs0 = [...this.edata.values()].map(ed => ed.x - 1.0);
-        const eXs1 = [...this.edata.values()].map(ed => ed.x + 1.0);
-        const eYs0 = [...this.edata.values()].map(ed => ed.y - (ed.boxSize() + 1) * 0.5);
-        const eYs1 = [...this.edata.values()].map(ed => ed.y + (ed.boxSize() + 1) * 0.5);
+        const eXs0 = [...this.edata.values()].map(ed => ed.x - (ed.width + 1) * 0.5);
+        const eXs1 = [...this.edata.values()].map(ed => ed.x + (ed.width + 1) * 0.5);
+        const eYs0 = [...this.edata.values()].map(ed => ed.y - (ed.height + 1) * 0.5);
+        const eYs1 = [...this.edata.values()].map(ed => ed.y + (ed.height + 1) * 0.5);
         const minX = Math.min(...vXs0, ...eXs0);
         const maxX = Math.max(...vXs1, ...eXs1);
         const minY = Math.min(...vYs0, ...eYs0);
@@ -457,7 +456,7 @@ export class Graph {
         }
         for (const e of other.edges()) {
             const ed = other.edgeData(e);
-            g.addEdge(ed.s.map(v => vmap.get(v)), ed.t.map(v => vmap.get(v)), ed.value, ed.x, ed.y - minOther + 1, ed.fg, ed.bg, ed.hyper);
+            g.addEdge(ed.s.map(v => vmap.get(v)), ed.t.map(v => vmap.get(v)), ed.value, ed.x, ed.y - minOther + 1, ed.width, ed.height, ed.fg, ed.bg, ed.hyper);
         }
         g.addInputs(other.inputs().map(v => vmap.get(v)));
         g.addOutputs(other.outputs().map(v => vmap.get(v)));
@@ -485,7 +484,7 @@ export class Graph {
         }
         for (const e of other.edges()) {
             const ed = other.edgeData(e);
-            g.addEdge(ed.s.map(v => vmap.get(v)), ed.t.map(v => vmap.get(v)), ed.value, ed.x - minOther, ed.y, ed.fg, ed.bg, ed.hyper);
+            g.addEdge(ed.s.map(v => vmap.get(v)), ed.t.map(v => vmap.get(v)), ed.value, ed.x - minOther, ed.y, ed.width, ed.height, ed.fg, ed.bg, ed.hyper);
         }
         const plug1 = g.outputs();
         const plug2 = other.inputs().map(v => vmap.get(v));
@@ -531,6 +530,46 @@ export class Graph {
         }
     }
     /**
+     * For each identity edge in the graph, merge the vertices.
+     * Returns true if the graph is changed, and false otherwise.
+     */
+    removeIdsOnce(onlyInternal) {
+        let usedVertices = new Set;
+        let toQuotient = [];
+        let toRemove = [];
+        for (const [i, ed] of this.edata.entries()) {
+            if (ed.value === 'id' && ed.s.length === ed.t.length) {
+                if ((ed.s.concat(ed.t)).every(v => !usedVertices.has(v) &&
+                    onlyInternal ? this.isBoundary(v) : true)) {
+                    toQuotient.push([ed.s, ed.t]);
+                    (ed.s.concat(ed.t)).forEach(e => usedVertices.add(e));
+                    toRemove.push(i);
+                }
+            }
+        }
+        if (toRemove.length === 0) {
+            return false;
+        }
+        for (const i of toRemove) {
+            this.removeEdge(i);
+        }
+        for (const [s, t] of toQuotient) {
+            const n = s.length;
+            for (let i = 0; i < n; i++) {
+                this.mergeVertices(s[i], t[i]);
+            }
+        }
+        return true;
+    }
+    removeIds(onlyInternal = true) {
+        let changed = false;
+        while (this.removeIdsOnce(onlyInternal)) {
+            changed = true;
+        }
+        ;
+        return changed;
+    }
+    /**
      * Returns a graph with a single hyperedge and the given number of inputs/outputs.
      *
      * @param value    The label for the hyperedge
@@ -539,23 +578,52 @@ export class Graph {
      * @param fg       Optional foreground color as a 6-digit RGB hex code
      * @param bg       Optional background color as a 6-digit RGB hex code
      */
-    static gen(value, arity, coarity, fg = '', bg = '') {
+    static gen(value, arity, coarity, width = null, height = null, fg = '', bg = '') {
         const g = new Graph();
         const inputs = Array.from({ length: arity }, (_, i) => g.addVertex(-1.5, i - (arity - 1) / 2));
         const outputs = Array.from({ length: coarity }, (_, i) => g.addVertex(1.5, i - (coarity - 1) / 2));
-        g.addEdge(inputs, outputs, value, 0, 0, fg, bg);
+        g.addEdge(inputs, outputs, value, 0, 0, width, height, fg, bg);
         g.setInputs(inputs);
         g.setOutputs(outputs);
         return g;
     }
     /**
-     * Returns a graph corresponding to the given permutation.
+     * Returns a graph with a single hyperedge and the given number of inputs/outputs.
+     *
+     * @param value    The label for the hyperedge
+     * @param domain   The values of input vertices connected to the source of the edge
+     * @param codomain The values of output vertices connected to the target of the edge
+     * @param fg       Optional foreground color as a 6-digit RGB hex code
+     * @param bg       Optional background color as a 6-digit RGB hex code
+     */
+    static mgen(value, domain, codomain, width = null, height = null, fg = '', bg = '') {
+        const g = new Graph();
+        const arity = domain.length;
+        const coarity = codomain.length;
+        const inputs = domain.map((val, i) => g.addVertex(-1.5, i - (arity - 1) / 2, val));
+        const outputs = codomain.map((val, i) => g.addVertex(1.5, i - (coarity - 1) / 2, val));
+        g.addEdge(inputs, outputs, value, 0, 0, width, height, fg, bg);
+        g.setInputs(inputs);
+        g.setOutputs(outputs);
+        return g;
+    }
+    /**
+     * Returns a graph corresponding to the given sized permutation.
      *
      * The permutation is given as a list [x0,..,x(n-1)], interpreted as { x0 -> 0, x1 -> 1, ..., x(n-1) -> n-1 }.
      * Input xj is mapped to the same vertex as output j.
      *
-     * @param p A permutation as an n-element list of integers from 0 to n-1
+     * @param p A permutation as an n-element list of integers from 0 to n-1, along with their values
      */
+    static mperm(p) {
+        const g = new Graph();
+        const size = p.length;
+        const inputs = Array.from({ length: size }, (_, i) => g.addVertex(0, i - (size - 1) / 2, p.find(([j, _]) => i === j)[1]));
+        const outputs = p.map(([i, _]) => inputs[i]);
+        g.setInputs(inputs);
+        g.setOutputs(outputs);
+        return g;
+    }
     static perm(p) {
         const g = new Graph();
         const size = p.length;
@@ -587,9 +655,21 @@ export function graphFromJson(jsonString) {
         g.addVertex(vd['x'] !== undefined ? parseFloat(vd['x']) : 0.0, vd['y'] !== undefined ? parseFloat(vd['y']) : 0.0, vd['value'] !== undefined ? vd['value'] : '', parseInt(v, 10));
     }
     for (const [e, ed] of Object.entries(j.edges)) {
-        g.addEdge(ed['s'].map(v => parseInt(v, 10)), ed['t'].map(v => parseInt(v, 10)), ed['value'] !== undefined ? String(ed['value']) : '', ed['x'] !== undefined ? parseFloat(ed['x']) : 0.0, ed['y'] !== undefined ? parseFloat(ed['y']) : 0.0, '', '', ed['hyper'] !== undefined ? Boolean(ed['hyper']) : true, parseInt(e, 10));
+        g.addEdge(ed['s'].map(v => parseInt(v, 10)), ed['t'].map(v => parseInt(v, 10)), ed['value'] !== undefined ? String(ed['value']) : '', ed['x'] !== undefined ? parseFloat(ed['x']) : 0.0, ed['y'] !== undefined ? parseFloat(ed['y']) : 0.0, ed['width'] !== undefined ? parseFloat(ed['width']) : null, ed['height'] !== undefined ? parseFloat(ed['height']) : null, '', '', ed['hyper'] !== undefined ? Boolean(ed['hyper']) : true, parseInt(e, 10));
     }
     g.setInputs(j.inputs.map((v) => parseInt(v, 10)));
     g.setOutputs(j.outputs.map((v) => parseInt(v, 10)));
     return g;
+}
+/**
+ * Determine if a vertex value is nontrivial, and return it
+ * (as a string) if so. Returns `null` for trivial values.
+ */
+export function isNontrivialValue(value) {
+    if (value === '' || value === '1' || value === 1) {
+        return null;
+    }
+    else {
+        return value.toString();
+    }
 }
