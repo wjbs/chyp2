@@ -127,3 +127,11 @@ input:focus { outline: 2px solid var(--accent); }
   max-height: 100%;
   object-fit: contain;
 }
+
+.vertex-path {
+  stroke: black;
+}
+
+.id-path {
+  stroke: black;
+}

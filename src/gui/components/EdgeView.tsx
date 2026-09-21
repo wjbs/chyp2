@@ -1,4 +1,5 @@
 import type { Graph } from "../../lib/graph";
+import { isNontrivialValue } from "../../lib/graph";
 import { SCALE, curveBetween, vertexyShift } from "../../lib/util";
 
 interface EdgeViewProps {
@@ -80,11 +81,21 @@ export function EdgeView({ uuid, graph, edge }: EdgeViewProps) {
                     ty = ed.y + vertexyShift(tvi, ed.s);
                 }
             }
-            return <path key={svi} d={curveBetween(sx * SCALE, sy * SCALE, 
+            const val = isNontrivialValue(sv.value) 
+                ?? ((window as any).debug_random_sizes ? ["1", "m", "n", "m * n"][v % 4] : "");
+            return <g id={`id${edge}{uuid}`}>
+                <path key={svi} d={curveBetween(sx * SCALE, sy * SCALE, 
                     tx * SCALE, ty * SCALE)}
+                    id={`idp${edge}${uuid}`}
                 fill="none"
-                stroke="blue"
+                className="id-path"
                 stroke-width={0.01 * SCALE} />
+                
+            <text style={`fill:black;font-size:${0.2 * SCALE};`}
+                transform={`translate(0, -${SCALE * 0.03})`}>
+                <textPath href={`#idp${edge}${uuid}`} startOffset="5" >{val}</textPath>
+            </text>
+            </g>
             })}
     </g>);
 }

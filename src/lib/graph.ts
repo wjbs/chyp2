@@ -778,3 +778,16 @@ export function graphFromJson(jsonString: string): Graph {
     g.setOutputs((j.outputs as unknown[]).map((v: unknown) => parseInt(v as string, 10)));
     return g;
 }
+
+/**
+ * Determine if a vertex value is nontrivial, and return it 
+ * (as a string) if so. Returns `null` for trivial values.
+ */
+export function isNontrivialValue(value : unknown) : string | null {
+    if (value === '' || value === '1' || value === 1) {
+        return null
+    }
+    else {
+        return (value as any).toString();
+    }
+}

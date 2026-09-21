@@ -1,4 +1,5 @@
 import type { Graph } from "../../lib/graph";
+import { isNontrivialValue } from "../../lib/graph";
 import { SCALE, curveBetween, curveTo, vertexyShift } from "../../lib/util";
 
 
@@ -57,28 +58,20 @@ function curveForEdge(g : Graph, v : number, e : number, isInEdge : Boolean) {
     return curveTo(xpos * SCALE, ypos * SCALE, vd.x * SCALE, vd.y * SCALE);
 }
 
-function isNontrivialValue(value : unknown) : string | null {
-    if (value === '' || value === '1' || value === 1) {
-        return null
-    }
-    else {
-        return (value as any).toString();
-    }
-}
 
 function svgOfMonogamousVertex(uuid: string, g : Graph, v : number, 
         inedge : number|null, outedge : number|null) {
     const curve = curveOfMonogamousVertex(g, v, inedge, outedge);
     const val = isNontrivialValue(g.vertexData(v).value) 
-        ?? ["1", "m", "n", "m * n"][v % 4];
+        ?? ((window as any).debug_random_sizes ? ["1", "m", "n", "m * n"][v % 4] : "");
 
     return <g id={`v${v}${uuid}`}>
         <path key={`${v}, ${inedge}, ${outedge}`} d={curve} id={`v${v}p${uuid}`}
                 fill="none"
-                stroke="black"
+                className="vertex-path"
                 stroke-width={0.01 * SCALE} />
         {val !== null ? (
-            <text style={`fill:black;font-size:${0.2 * SCALE};`}
+            <text style={`fill:black;font-size:${0.15 * SCALE};`}
                 transform={`translate(0, -${SCALE * 0.03})`}>
                 <textPath href={`#v${v}p${uuid}`} startOffset="5" >{val}</textPath>
             </text>
