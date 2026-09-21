@@ -88,7 +88,7 @@ export function EdgeView({ uuid, graph, edge }: EdgeViewProps) {
                     tx * SCALE, ty * SCALE)}
                     id={`idp${edge}${uuid}`}
                 fill="none"
-                className="id-path"
+                stroke="black"
                 stroke-width={0.01 * SCALE} />
                 
             <text style={`fill:black;font-size:${0.2 * SCALE};`}

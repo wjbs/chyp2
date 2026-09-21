@@ -68,7 +68,7 @@ function svgOfMonogamousVertex(uuid: string, g : Graph, v : number,
     return <g id={`v${v}${uuid}`}>
         <path key={`${v}, ${inedge}, ${outedge}`} d={curve} id={`v${v}p${uuid}`}
                 fill="none"
-                className="vertex-path"
+                stroke="black"
                 stroke-width={0.01 * SCALE} />
         {val !== null ? (
             <text style={`fill:black;font-size:${0.15 * SCALE};`}
