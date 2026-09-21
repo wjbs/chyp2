@@ -7,7 +7,6 @@ import { SCALE } from "../../lib/util";
 import { convexLayout } from "../../lib/layout";
 import { layerDecomp } from "../../lib/term";
 
-
 interface GraphViewProps {
     uuid: string;
     graph: Graph | null;
