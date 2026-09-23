@@ -2,6 +2,7 @@ import { Graph } from "./graph";
 import { Rule } from "./rule";
 import { TacticArgs } from "./tactic";
 import { Term } from "./term";
+import { type Chyp2Settings } from "./util";
 type PartStatus = 0 | 1 | 2 | 3;
 export declare class EvalError extends Error {
     partIndex: number;
@@ -23,7 +24,7 @@ export declare class Part {
 export declare class GraphPart extends Part {
     lhs: Graph | null;
     rhs: Graph | null;
-    layout(): void;
+    layout(s: Chyp2Settings, force?: boolean): void;
 }
 export declare class GenPart extends GraphPart {
     name: string;

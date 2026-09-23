@@ -4,7 +4,7 @@ import { Rule } from "./rule";
 import { Tactic, RuleTactic, TacticArgs } from "./tactic";
 import { Term } from "./term";
 import { ProofState, Goal, ProofError } from "./proofstate";
-import { currentSettings, lineNumberForPosition } from "./util";
+import { lineNumberForPosition, type Chyp2Settings } from "./util";
 
 type PartStatus = 0 | 1 | 2 | 3;
 
@@ -41,9 +41,9 @@ export class GraphPart extends Part {
     lhs: Graph | null = null;
     rhs: Graph | null = null;
 
-    public layout(): void {
-        if (this.lhs) convexLayout(currentSettings, this.lhs);
-        if (this.rhs) convexLayout(currentSettings, this.rhs);
+    public layout(s : Chyp2Settings, force : boolean=false): void {
+        if (this.lhs) convexLayout(s, this.lhs, force);
+        if (this.rhs) convexLayout(s, this.rhs, force);
     }
 }
 

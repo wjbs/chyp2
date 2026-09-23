@@ -4,7 +4,7 @@ import { Graph } from "../../lib/graph";
 import { EdgeView } from "./EdgeView";
 import { VertexView } from "./VertexView";
 import { SCALE, type Chyp2Settings } from "../../lib/util";
-import { convexLayout } from "../../lib/layout";
+// import { convexLayout } from "../../lib/layout";
 import { layerDecomp } from "../../lib/term";
 
 interface GraphViewProps {
@@ -13,15 +13,15 @@ interface GraphViewProps {
     graph: Graph | null;
 }
 
-export function GraphView({ s, uuid, graph }: GraphViewProps) {
+export function GraphView({ s:s, uuid, graph }: GraphViewProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     if (!graph) {
         return <div className="graph-panel" />;
     }
-    if ((window as any).debug_show_graph) {
+    if ((window as any).debug_show_graph && s !== null) {
         console.log("graph", layerDecomp(graph).map(es => es.map(e => `${e} : ${graph.edgeData(e).value}`).toString()));
     }
-    convexLayout(s, graph, true, (window as any).NUM_ITERATIONS ?? 10);
+    // convexLayout(s, graph, true, (window as any).NUM_ITERATIONS ?? 10);
     const bbox = graph.boundingBox();
     const viewBox = `${bbox[0] * SCALE} ${bbox[2] * SCALE} ${(bbox[1] - bbox[0]) * SCALE} ${(bbox[3] - bbox[2]) * SCALE}`;
     return (
@@ -41,6 +41,7 @@ interface GraphPanelsProps {
 }
 
 export function GraphPanels({ s, lhs, rhs }: GraphPanelsProps) {
+    // console.log("rerendering");
     if (rhs === null) {
         return (
             <div style={{ display: 'flex', width: '100%', height: '100%', justifyContent: 'center' }}>

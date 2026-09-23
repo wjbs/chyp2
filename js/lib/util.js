@@ -116,7 +116,6 @@ export const defaultSettings = {
     OPTIM: defaultOptimSettings,
     layout: "OPTIM"
 };
-export const currentSettings = defaultSettings;
 function updateGen(partial, defaultValue) {
     if (partial === undefined || partial === null)
         return defaultValue;

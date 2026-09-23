@@ -161,8 +161,6 @@ export const defaultSettings : Chyp2Settings = {
     layout : "OPTIM"
 };
 
-export const currentSettings : Chyp2Settings = defaultSettings;
-
 function updateGen<T>(partial : any, defaultValue : T) : T {
     if (partial === undefined || partial === null) return defaultValue
     let k : keyof T;

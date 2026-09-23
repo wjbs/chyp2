@@ -385,6 +385,7 @@ function convexOptimizationLayout(g, force = false, s) {
         g.edgeData(edges[i]).y = colValue[numVerts + i];
     }
     centreGraph(g);
+    g.laidOut = true;
 }
 function elementaryLayerDecompPreLayout(s, g, eLayers) {
     // ----- Assign initial x-coordinates and rough y-coordinates -----
@@ -636,6 +637,8 @@ export function convexElementaryLayout(g, force = false, NUM_ITERATIONS = 10, s)
     g.laidOut = true;
 }
 export function convexLayout(s, g, force = false, NUM_ITERATIONS = 10) {
+    if (g.laidOut && !force)
+        return;
     if (s.layout === "OPTIM") {
         convexOptimizationLayout(g, force, s);
     }

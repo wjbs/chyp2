@@ -29,7 +29,6 @@ export interface Chyp2Settings {
 }
 export declare const defaultOptimSettings: OPTIMSettings;
 export declare const defaultSettings: Chyp2Settings;
-export declare const currentSettings: Chyp2Settings;
 export declare function updateOptimSettings(partialSettings: any, settings: OPTIMSettings): OPTIMSettings;
 export declare function updateSettings(partialSettings: any, settings: Chyp2Settings): Chyp2Settings;
 export {};

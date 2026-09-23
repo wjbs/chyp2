@@ -421,6 +421,7 @@ function convexOptimizationLayout(g : Graph, force : boolean = false,
         g.edgeData(edges[i]).y = colValue[numVerts + i];
     }
     centreGraph(g);
+    g.laidOut = true;
 }
 
 
@@ -708,6 +709,7 @@ export function convexElementaryLayout(g: Graph, force: boolean = false, NUM_ITE
 
 export function convexLayout(s : Chyp2Settings, g : Graph, force: boolean = false, NUM_ITERATIONS: number = 10
 ) : void {
+    if (g.laidOut && !force) return;
     if (s.layout === "OPTIM") {
         convexOptimizationLayout(g, force, s);
     }

@@ -37,19 +37,27 @@ export function ChypEditor({ filename: _filename, content, onChange }) {
     const [state, setState] = useState(new State());
     const [currentPart, setCurrentPart] = useState(-1);
     const [settings, setSettings] = useState(() => retrieveSettings(_filename));
-    useEffect(() => {
-        storeSettings(_filename, settings);
-    }, [settings]);
-    window.settings = settings;
-    window.setSettings = setSettings;
-    const currentGraphPart = () => {
+    const [currentLHS, setCurrentLHS] = useState(null);
+    const [currentRHS, setCurrentRHS] = useState(null);
+    const updateGraph = (forceRelayout = false) => {
         const part = currentPart >= 0 ? state.parts[currentPart] : null;
         if (part instanceof GraphPart) {
-            part.layout();
-            return part;
+            part.layout(settings, forceRelayout);
+            setCurrentLHS((part.lhs ?? null)?.copy() ?? null);
+            setCurrentRHS((part.rhs ?? null)?.copy() ?? null);
         }
-        return null;
     };
+    useEffect(() => {
+        console.log("settings");
+        storeSettings(_filename, settings);
+        updateGraph(true);
+    }, [settings]);
+    // (window as any).settings = settings;
+    // (window as any).setSettings = setSettings;
+    useEffect(() => {
+        console.log("currentPart");
+        updateGraph();
+    }, [currentPart]);
     const handleChange = (content, pos) => {
         let newState = new State();
         if (content !== null) {
@@ -74,5 +82,5 @@ export function ChypEditor({ filename: _filename, content, onChange }) {
     useEffect(() => {
         handleChange(content, 0);
     }, [content]);
-    return (_jsxs(Splitpane, { splitRatio: 0.6, orientation: "vertical", showSecondPanel: true, children: [_jsx(GraphPanels, { lhs: currentGraphPart()?.lhs ?? null, rhs: currentGraphPart()?.rhs ?? null, s: settings }), _jsxs(Splitpane, { splitRatio: 0.7, orientation: "horizontal", showSecondPanel: true, children: [_jsx(CodeView, { state: state, currentPart: currentPart, initialContent: content, onChange: handleChange }), _jsx(SettingsView, { s: settings, update: setSettings })] })] }));
+    return (_jsxs(Splitpane, { splitRatio: 0.6, orientation: "vertical", showSecondPanel: true, children: [_jsx(GraphPanels, { lhs: currentLHS, rhs: currentRHS, s: settings }), _jsxs(Splitpane, { splitRatio: 0.7, orientation: "horizontal", showSecondPanel: true, children: [_jsx(CodeView, { state: state, currentPart: currentPart, initialContent: content, onChange: handleChange }), _jsx(SettingsView, { s: settings, update: setSettings })] })] }));
 }

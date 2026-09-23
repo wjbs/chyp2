@@ -10,6 +10,7 @@ import { ChypReader } from "../../lib/reader";
 import { State, GraphPart } from "../../lib/state";
 import { defaultSettings, updateSettings, type Chyp2Settings } from '../../lib/util';
 import { SettingsView } from './SettingsView';
+import type { Graph } from '../../lib/graph';
 
 
 
@@ -56,22 +57,34 @@ export function ChypEditor({ filename: _filename, content, onChange }: ChypEdito
     const [settings, setSettings] = useState<Chyp2Settings>(() =>
         retrieveSettings(_filename))
 
-    useEffect(() => {
-        storeSettings(_filename, settings)
-    }, [settings]);
+    const [currentLHS, setCurrentLHS] = useState<Graph|null>(null);
+    const [currentRHS, setCurrentRHS] = useState<Graph|null>(null);
 
-    (window as any).settings = settings;
-    (window as any).setSettings = setSettings;
-
-
-    const currentGraphPart = (): GraphPart | null => {
+    const updateGraph = (forceRelayout : boolean = false) => {
         const part = currentPart >= 0 ? state.parts[currentPart] : null;
         if (part instanceof GraphPart) {
-            part.layout();
-            return part;
+            part.layout(settings, forceRelayout);
+            setCurrentLHS((part.lhs??null)?.copy()??null);
+            setCurrentRHS((part.rhs??null)?.copy()??null);
         }
-        return null;
-    };
+    }
+
+    useEffect(() => {
+        console.log("settings");
+        storeSettings(_filename, settings);
+        updateGraph(true);
+    }, [settings]);
+
+    // (window as any).settings = settings;
+    // (window as any).setSettings = setSettings;
+
+
+
+    useEffect(() => {
+        console.log("currentPart");
+        updateGraph();
+    }, [currentPart])
+
 
     const handleChange = (content: string | null, pos: number | null) => {
         let newState = new State();
@@ -103,7 +116,7 @@ export function ChypEditor({ filename: _filename, content, onChange }: ChypEdito
 
     return (
         <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>
-            <GraphPanels lhs={currentGraphPart()?.lhs ?? null} rhs={currentGraphPart()?.rhs ?? null}
+            <GraphPanels lhs={currentLHS} rhs={currentRHS}
                 s={settings} />
             <Splitpane splitRatio={0.7} orientation="horizontal" showSecondPanel={true}>
                 <CodeView state={state}

@@ -6,7 +6,7 @@ interface GraphViewProps {
     uuid: string;
     graph: Graph | null;
 }
-export declare function GraphView({ s, uuid, graph }: GraphViewProps): import("preact").JSX.Element;
+export declare function GraphView({ s: s, uuid, graph }: GraphViewProps): import("preact").JSX.Element;
 interface GraphPanelsProps {
     s: Chyp2Settings;
     lhs: Graph | null;
