@@ -16,15 +16,16 @@ import { Graph } from "./graph.js";
 import { layerDecomp } from "./term.js";
 import { inversionsWRT, vertexyShift } from "./util.js";
 import loadHighs, {} from "highs";
-var _highs = null;
+const highs = await loadHighs();
+// var _highs : Highs | null = null;
 // hack to get around no top-level await in CJS
-loadHighs().then(value => { _highs = value; });
+// loadHighs().then(value => {_highs = value});
 function getHighs() {
-    if (_highs === null) {
-        throw new Error("Highs requested before assignment!");
-    }
-    else
-        return _highs;
+    return highs;
+    // if (_highs === null) {
+    //     throw new Error("Highs requested before assignment!")
+    // }
+    // else return _highs;
 }
 // (window as any).highs = highs
 // const NUM_ITERATIONS = 10;
