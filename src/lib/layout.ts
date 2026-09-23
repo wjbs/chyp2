@@ -17,9 +17,20 @@ import { Graph } from './graph.ts';
 import { layerDecomp } from './term.ts';
 import { inversionsWRT, vertexyShift, type Chyp2Settings } from './util.ts';
 
-import loadHighs, { type HessianInput, type ModelData, type SparseMatrixInput } from "highs";
+import loadHighs, { type HessianInput, type Highs, type ModelData, type SparseMatrixInput } from "highs";
 
-const highs = await loadHighs();
+var _highs : Highs | null = null;
+
+// hack to get around no top-level await in CJS
+loadHighs().then(value => {_highs = value});
+
+function getHighs() : Highs {
+    if (_highs === null) {
+        throw new Error("Highs requested before assignment!")
+    }
+    else return _highs;
+}
+
 
 // (window as any).highs = highs
 // const NUM_ITERATIONS = 10;
@@ -142,6 +153,7 @@ function makeOptimizationProblem(g : Graph, eLayers : number[][], s : Chyp2Setti
     {c : {name : string, coeff : number}[], Q : number[][],
         bounds : {name : string, lower : number, upper : number, Arow : number[]}[]
         } {
+    const highs = getHighs();
     const verts : number[] = [...g.vertices()];
     const edges : number[] = [...g.edges()];
     const numVerts = verts.length;
@@ -363,6 +375,7 @@ function Q2Hessian(dimension : number, Q : number[][]) : HessianInput {
 }
 
 function graphToModelData(g : Graph, eLayers : number[][], s : Chyp2Settings) : ModelData {
+    const highs = getHighs();
     const problem = makeOptimizationProblem(g, eLayers, s);
     const numCols = problem.c.length;
     const numRows = problem.bounds.length;
@@ -384,6 +397,7 @@ function graphToModelData(g : Graph, eLayers : number[][], s : Chyp2Settings) : 
 function convexOptimizationLayout(g : Graph, force : boolean = false, 
     s : Chyp2Settings
 ) : void {
+    const highs = getHighs();
     if (g.laidOut && !force) return;
     const eLayers = layerDecomp(g);
     elementaryLayerDecompPreLayout(s, g, eLayers);

@@ -16,7 +16,16 @@ import { Graph } from "./graph.js";
 import { layerDecomp } from "./term.js";
 import { inversionsWRT, vertexyShift } from "./util.js";
 import loadHighs, {} from "highs";
-const highs = await loadHighs();
+var _highs = null;
+// hack to get around no top-level await in CJS
+loadHighs().then(value => { _highs = value; });
+function getHighs() {
+    if (_highs === null) {
+        throw new Error("Highs requested before assignment!");
+    }
+    else
+        return _highs;
+}
 // (window as any).highs = highs
 // const NUM_ITERATIONS = 10;
 /**
@@ -130,6 +139,7 @@ for v in g.vertices():
 
 */
 function makeOptimizationProblem(g, eLayers, s) {
+    const highs = getHighs();
     const verts = [...g.vertices()];
     const edges = [...g.edges()];
     const numVerts = verts.length;
@@ -332,6 +342,7 @@ function Q2Hessian(dimension, Q) {
     return { dimension, format, indices, starts, values };
 }
 function graphToModelData(g, eLayers, s) {
+    const highs = getHighs();
     const problem = makeOptimizationProblem(g, eLayers, s);
     const numCols = problem.c.length;
     const numRows = problem.bounds.length;
@@ -349,6 +360,7 @@ function graphToModelData(g, eLayers, s) {
         matrix, rowLower, rowUpper, rowNames, sense };
 }
 function convexOptimizationLayout(g, force = false, s) {
+    const highs = getHighs();
     if (g.laidOut && !force)
         return;
     const eLayers = layerDecomp(g);
