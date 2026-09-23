@@ -8,6 +8,20 @@ import Splitpane from "./Splitpane";
 import { parser } from "../../lib/parser";
 import { ChypReader } from "../../lib/reader";
 import { State, GraphPart } from "../../lib/state";
+import { defaultSettings, updateSettings, type Chyp2Settings } from '../../lib/util';
+import { SettingsView } from './SettingsView';
+
+
+
+function retrieveSettings(filename : string) : Chyp2Settings {
+    const storedSettingsJSON = localStorage.getItem(`settings_${filename}`);
+    return updateSettings(storedSettingsJSON === null ? null : JSON.parse(storedSettingsJSON), 
+        defaultSettings);
+}
+
+function storeSettings(filename : string, s : Chyp2Settings) : void {
+    localStorage.setItem(`settings_${filename}`, JSON.stringify(s));
+}
 
 export interface ChypEditorProps {
     filename: string;
@@ -39,6 +53,16 @@ export function ChypEditor({ filename: _filename, content, onChange }: ChypEdito
     // `;
     const [state, setState] = useState<State>(new State());
     const [currentPart, setCurrentPart] = useState<number>(-1);
+    const [settings, setSettings] = useState<Chyp2Settings>(() =>
+        retrieveSettings(_filename))
+
+    useEffect(() => {
+        storeSettings(_filename, settings)
+    }, [settings]);
+
+    (window as any).settings = settings;
+    (window as any).setSettings = setSettings;
+
 
     const currentGraphPart = (): GraphPart | null => {
         const part = currentPart >= 0 ? state.parts[currentPart] : null;
@@ -75,16 +99,23 @@ export function ChypEditor({ filename: _filename, content, onChange }: ChypEdito
 
     useEffect(() => {
         handleChange(content, 0);
-    }, []);
+    }, [content]);
 
     return (
         <Splitpane splitRatio={0.6} orientation="vertical" showSecondPanel={true}>
-            <GraphPanels lhs={currentGraphPart()?.lhs ?? null} rhs={currentGraphPart()?.rhs ?? null} />
-            <CodeView state={state}
-                currentPart={currentPart}
-                initialContent={content}
-                onChange={handleChange}
-            />
+            <GraphPanels lhs={currentGraphPart()?.lhs ?? null} rhs={currentGraphPart()?.rhs ?? null}
+                s={settings} />
+            <Splitpane splitRatio={0.7} orientation="horizontal" showSecondPanel={true}>
+                <CodeView state={state}
+                    currentPart={currentPart}
+                    initialContent={content}
+                    onChange={handleChange}
+                />
+                <SettingsView 
+                    s={settings}
+                    update={setSettings}
+                    />
+            </Splitpane>
         </Splitpane>
     )
 }

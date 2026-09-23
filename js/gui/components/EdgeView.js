@@ -19,28 +19,73 @@ export function EdgeView({ uuid, graph, edge }) {
                 _jsxs("g", { children: [_jsx("rect", { x: (edgeData.x - 0.4 * edgeData.width) * SCALE, y: (edgeData.y - edgeData.height * 0.4) * SCALE, width: 0.8 * edgeData.width * SCALE, height: 0.8 * edgeData.height * SCALE, fill: "#ccccff", stroke: "black", "stroke-width": 0.01 * SCALE }), _jsx("text", { x: edgeData.x * SCALE, y: edgeData.y * SCALE, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 0.3 * SCALE, "font-family": "sans-serif", children: edgeData.value })] }) : null, (edgeData.value !== 'id') ? null :
                 edgeData.s.map(function (svi, i) {
                     const tvi = edgeData.t[i];
-                    const sv = graph.vertexData(svi);
-                    const tv = graph.vertexData(tvi);
-                    const svIn = [...sv.inEdges.values()].at(0) ?? null;
-                    const tvOut = [...tv.outEdges.values()].at(0) ?? null;
-                    let [sx, sy] = [sv.x, sv.y];
-                    let [tx, ty] = [tv.x, tv.y];
-                    if (svIn !== null) {
-                        const ed = graph.edgeData(svIn);
-                        if (ed.value !== 'id') {
-                            sx = ed.x + ed.width * 0.4;
-                            sy = ed.y + vertexyShift(svi, ed.t);
+                    if (graph.isBoundary(svi) && graph.isBoundary(tvi)) {
+                        const sv = graph.vertexData(svi);
+                        const tv = graph.vertexData(tvi);
+                        const svIn = [...sv.inEdges.values()].at(0) ?? null;
+                        const tvOut = [...tv.outEdges.values()].at(0) ?? null;
+                        let [sx, sy] = [sv.x, sv.y];
+                        let [tx, ty] = [tv.x, tv.y];
+                        if (svIn !== null) {
+                            const ed = graph.edgeData(svIn);
+                            if (ed.value !== 'id') {
+                                sx = ed.x + ed.width * 0.4;
+                                sy = ed.y + vertexyShift(svi, ed.t);
+                            }
                         }
-                    }
-                    if (tvOut !== null) {
-                        const ed = graph.edgeData(tvOut);
-                        if (ed.value !== 'id') {
-                            tx = ed.x - ed.width * 0.4;
-                            ty = ed.y + vertexyShift(tvi, ed.s);
+                        if (tvOut !== null) {
+                            const ed = graph.edgeData(tvOut);
+                            if (ed.value !== 'id') {
+                                tx = ed.x - ed.width * 0.4;
+                                ty = ed.y + vertexyShift(tvi, ed.s);
+                            }
                         }
+                        const val = isNontrivialValue(sv.value)
+                            ?? (window.debug_random_sizes ? ["1", "m", "n", "m * n"][svi % 4] : "");
+                        return _jsxs("g", { id: `id${edge}{uuid}`, children: [_jsx("path", { d: curveBetween(sx * SCALE, sy * SCALE, tx * SCALE, ty * SCALE), id: `idp${edge}${uuid}`, fill: "none", stroke: "black", "stroke-width": 0.01 * SCALE }, svi), _jsx("text", { style: `fill:black;font-size:${0.2 * SCALE};`, transform: `translate(0, -${SCALE * 0.03})`, children: _jsx("textPath", { href: `#idp${edge}${uuid}`, startOffset: "5", children: val }) })] });
                     }
-                    const val = isNontrivialValue(sv.value)
-                        ?? (window.debug_random_sizes ? ["1", "m", "n", "m * n"][svi % 4] : "");
-                    return _jsxs("g", { id: `id${edge}{uuid}`, children: [_jsx("path", { d: curveBetween(sx * SCALE, sy * SCALE, tx * SCALE, ty * SCALE), id: `idp${edge}${uuid}`, fill: "none", stroke: "black", "stroke-width": 0.01 * SCALE }, svi), _jsx("text", { style: `fill:black;font-size:${0.2 * SCALE};`, transform: `translate(0, -${SCALE * 0.03})`, children: _jsx("textPath", { href: `#idp${edge}${uuid}`, startOffset: "5", children: val }) })] });
-                })] }));
+                    else {
+                        const [x, y] = [edgeData.x, edgeData.y];
+                        const width = edgeData.width;
+                        return _jsx("g", { id: `id${edge}${uuid}`, children: _jsx("path", { d: curveBetween((x - 0.4 * width) * SCALE, y * SCALE, (x + 0.4 * width) * SCALE, y * SCALE), id: `idp${edge}${uuid}`, fill: "none", stroke: "black", "stroke-width": 0.01 * SCALE }, `id${edge}${uuid}`) });
+                    }
+                }
+                // edgeData.s.map(function (svi, i) {
+                // const tvi = edgeData.t[i];
+                // const sv = graph.vertexData(svi);
+                // const tv = graph.vertexData(tvi);
+                // const svIn : number|null = [...sv.inEdges.values()].at(0) ?? null
+                // const tvOut : number|null = [...tv.outEdges.values()].at(0) ?? null;
+                // let [sx, sy] = [sv.x, sv.y]
+                // let [tx, ty] = [tv.x, tv.y]
+                // if (svIn !== null) {
+                //     const ed = graph.edgeData(svIn);
+                //     if (ed.value !== 'id') {
+                //         sx = ed.x + ed.width * 0.4;
+                //         sy = ed.y + vertexyShift(svi, ed.t);
+                //     }
+                // }
+                // if (tvOut !== null) {
+                //     const ed = graph.edgeData(tvOut);
+                //     if (ed.value !== 'id') {
+                //         tx = ed.x - ed.width * 0.4;
+                //         ty = ed.y + vertexyShift(tvi, ed.s);
+                //     }
+                // }
+                // const val = isNontrivialValue(sv.value) 
+                //     ?? ((window as any).debug_random_sizes ? ["1", "m", "n", "m * n"][svi % 4] : "");
+                // return <g id={`id${edge}{uuid}`}>
+                //     <path key={svi} d={curveBetween(sx * SCALE, sy * SCALE, 
+                //         tx * SCALE, ty * SCALE)}
+                //         id={`idp${edge}${uuid}`}
+                //     fill="none"
+                //     stroke="black"
+                //     stroke-width={0.01 * SCALE} />
+                // <text style={`fill:black;font-size:${0.2 * SCALE};`}
+                //     transform={`translate(0, -${SCALE * 0.03})`}>
+                //     <textPath href={`#idp${edge}${uuid}`} startOffset="5" >{val}</textPath>
+                // </text>
+                // </g>
+                // }
+                )] }));
 }

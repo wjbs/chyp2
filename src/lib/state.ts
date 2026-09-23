@@ -4,7 +4,7 @@ import { Rule } from "./rule";
 import { Tactic, RuleTactic, TacticArgs } from "./tactic";
 import { Term } from "./term";
 import { ProofState, Goal, ProofError } from "./proofstate";
-import { lineNumberForPosition } from "./util";
+import { currentSettings, lineNumberForPosition } from "./util";
 
 type PartStatus = 0 | 1 | 2 | 3;
 
@@ -42,8 +42,8 @@ export class GraphPart extends Part {
     rhs: Graph | null = null;
 
     public layout(): void {
-        if (this.lhs) convexLayout(this.lhs);
-        if (this.rhs) convexLayout(this.rhs);
+        if (this.lhs) convexLayout(currentSettings, this.lhs);
+        if (this.rhs) convexLayout(currentSettings, this.rhs);
     }
 }
 

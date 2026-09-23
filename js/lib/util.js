@@ -82,3 +82,56 @@ export function vertexyShift(v, st) {
         return vertexiyShift(idx, st.length);
     }
 }
+export function inversions(p) {
+    var invs = 0;
+    for (let i = 0; i < p.length; i++) {
+        const pi = p[i];
+        for (let j = i + 1; j < p.length; j++) {
+            if (p[j] < pi)
+                invs++;
+        }
+    }
+    return invs;
+}
+export function inversionsWRT(ordering, p) {
+    return inversions(p.map(i => ordering.indexOf(i)));
+}
+// Count the number of inversions that occur between `vs` and `ws`, i.e.,
+// the number of `v` in `vs` and `w` in `ws` with `w` occuring in `ordering` before `v`
+export function inversionsBetween(ordering, vs, ws) {
+    return vs.reduce((acc, v) => acc +
+        ws.filter(w => ordering.indexOf(w) < ordering.indexOf(v)).length, 0);
+}
+;
+export const defaultOptimSettings = {
+    min_boundary_height: 1,
+    boundary_weight: 1,
+    edge_gap_weight: 1,
+    vertex_gap_weight: 1,
+    edge_gap_factor: 1,
+    layer_gap: 0.4,
+    layer_gap_sqrt_invers_weight: 0.2,
+};
+export const defaultSettings = {
+    OPTIM: defaultOptimSettings,
+    layout: "OPTIM"
+};
+export const currentSettings = defaultSettings;
+function updateGen(partial, defaultValue) {
+    if (partial === undefined || partial === null)
+        return defaultValue;
+    let k;
+    for (k in defaultValue) {
+        partial[k] = partial[k] ?? defaultValue[k];
+    }
+    return partial;
+}
+export function updateOptimSettings(partialSettings, settings) {
+    return updateGen(partialSettings, settings);
+}
+export function updateSettings(partialSettings, settings) {
+    if (partialSettings === undefined || partialSettings === null)
+        return settings;
+    partialSettings.OPTIM = updateOptimSettings(partialSettings.OPTIM, settings.OPTIM);
+    return updateGen(partialSettings, settings);
+}

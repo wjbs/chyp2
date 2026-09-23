@@ -4,7 +4,7 @@ import { Rule } from "./rule";
 import { Tactic, RuleTactic, TacticArgs } from "./tactic";
 import { Term } from "./term";
 import { ProofState, Goal, ProofError } from "./proofstate";
-import { lineNumberForPosition } from "./util";
+import { currentSettings, lineNumberForPosition } from "./util";
 export class EvalError extends Error {
     partIndex;
     constructor(message, partIndex = -1) {
@@ -34,9 +34,9 @@ export class GraphPart extends Part {
     rhs = null;
     layout() {
         if (this.lhs)
-            convexLayout(this.lhs);
+            convexLayout(currentSettings, this.lhs);
         if (this.rhs)
-            convexLayout(this.rhs);
+            convexLayout(currentSettings, this.rhs);
     }
 }
 export class GenPart extends GraphPart {

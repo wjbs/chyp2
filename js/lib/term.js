@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Graph, GraphError } from "./graph.js";
+import { inversionsBetween, inversionsWRT } from "./util.js";
 export class Term {
     toGraph(_defs) {
         return new Graph();
@@ -110,15 +111,85 @@ export class Par extends Term {
         }
     }
 }
-// Count the number of inversions that occur between `vs` and `ws`, i.e.,
-// the number of `v` in `vs` and `w` in `ws` with `w` occuring in `ordering` before `v`
-function inversionsBetween(ordering, vs, ws) {
-    return vs.reduce((acc, v) => acc +
-        ws.filter(w => ordering.indexOf(w) < ordering.indexOf(v)).length, 0);
-}
 function sortEdges(ordering, vs, ws) {
-    return inversionsBetween(ordering, vs, ws) - inversionsBetween(ordering, ws, vs);
+    return -(inversionsBetween(ordering, vs, ws) - inversionsBetween(ordering, ws, vs));
 }
+// Source - https://stackoverflow.com/a/37580979
+// Posted by le_m, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-09-22, License - CC BY-SA 4.0
+function permute(permutation) {
+    var length = permutation.length;
+    const result = [permutation.slice()];
+    const c = new Array(length).fill(0);
+    let i = 1, k, p;
+    while (i < length) {
+        if (c[i] < i) {
+            k = i % 2 && c[i];
+            p = permutation[i];
+            permutation[i] = permutation[k];
+            permutation[k] = p;
+            ++c[i];
+            i = 1;
+            result.push(permutation.slice());
+        }
+        else {
+            c[i] = 0;
+            ++i;
+        }
+    }
+    return result;
+}
+/**
+ * Returns the permutation of a layer decomposition with the fewest number
+ * of inversions required between different layers. `bestKnown`, if present
+ * and not equal to -1, specifies the number of inversions of the best known
+ * solution; more expensive solutions will be ignored (this may result in
+ * returning `null`).
+ */
+function optimizeLayerDecompExpensive(inputs, eLayersWithData, outputs, bestKnown = null) {
+    if (bestKnown === 0)
+        return null;
+    if (eLayersWithData.length === 0) {
+        return { numInvs: inversionsWRT(inputs, outputs), ld: eLayersWithData };
+    }
+    let bestSolution = null;
+    const eLayer = eLayersWithData[eLayersWithData.length - 1];
+    const eLayers = eLayersWithData.slice(0, -1);
+    for (const eLayerP of permute(eLayer.slice())) {
+        const elo = Array(0).concat(...eLayerP.map(e => e.t));
+        const outInvs = inversionsWRT(elo, outputs);
+        if (bestKnown !== null && bestKnown <= outInvs)
+            continue;
+        const eli = Array(0).concat(...eLayerP.map(e => e.s));
+        const best_rec = optimizeLayerDecompExpensive(inputs, eLayers, eli, bestKnown);
+        if (best_rec === null)
+            continue;
+        if (bestSolution === null) {
+            bestSolution = { numInvs: best_rec.numInvs + outInvs, ld: [...best_rec.ld, eLayerP] };
+        }
+        else {
+            const invs = best_rec.numInvs + outInvs;
+            if (invs < bestSolution.numInvs) {
+                bestSolution = { numInvs: best_rec.numInvs + outInvs, ld: [...best_rec.ld, eLayerP] };
+            }
+        }
+        bestKnown = bestKnown === null ? bestSolution.numInvs : Math.min(bestKnown, bestSolution.numInvs);
+    }
+    return bestSolution;
+}
+function getLayerDecompInvs(inputs, ld, outputs) {
+    if (ld.length === 0)
+        return inversionsWRT(inputs, outputs);
+    const el = ld[0];
+    const lds = ld.slice(1);
+    const eli = el.flatMap(e => e.s);
+    const elo = el.flatMap(e => e.t);
+    // console.log("gldi: ", [...el], [...lds], [...inputs], [...eli], [...elo], [...outputs], 
+    //     // inversionsWRT(inputs, eli), getLayerDecompInvs(elo, lds, outputs)
+    // );
+    return inversionsWRT(inputs, eli) + getLayerDecompInvs(elo, lds, outputs);
+}
+// (window as any).gLDI = getLayerDecompInvs;
 /**
  * Decompose a graph into regular and singular layers.
  *
@@ -158,11 +229,20 @@ export function layerDecomp(g) {
         const l = eLayers.pop();
         if (l === undefined) {
             const newLayer = [e];
-            for (const v of [...g.inputs()]) {
+            for (const _v of [...g.inputs()]) {
                 // Insert identities for all inputs
-                const newEdge = g.insertIdAfter(v);
-                newLayer.push(newEdge);
-                vPlaced.add(g.target(newEdge)[0]);
+                // var newEdge : number;
+                // const vouts = [...g.vertexData(v).outEdges];
+                // if (vouts.length === 1 && g.edgeData(vouts[0]).value == 'id') {
+                //     newEdge = vouts[0];
+                // }
+                // else {
+                //     newEdge = g.insertIdAfter(v);
+                // }
+                // const newEdge = g.insertIdAfter(v);
+                // newLayer.push(newEdge);
+                // vPlaced.add(g.target(newEdge)[0]);
+                // vLayer.push(g.target(newEdge)[0])
             }
             eLayers.push(newLayer);
         }
@@ -173,20 +253,25 @@ export function layerDecomp(g) {
             eLayers.push(l);
         }
     }
+    var firstTime = true;
     while (edges.size > 0) {
         // collect edges whose entire source is already placed, or could be using sourceless edges
         const ready = new Set();
         for (const e of edges) {
             const s = g.source(e);
-            if (s.length !== 0 && s.every(v => vPlaced.has(v) || vCanBePlaced.has(v)))
+            if (s.length !== 0 &&
+                firstTime ? s.every(v => vPlaced.has(v)) :
+                s.every(v => vPlaced.has(v) || vCanBePlaced.has(v)))
                 ready.add(e);
         }
         // add the necessary vertices from sourceless edges to the previous layer
+        // var usedSourceless = false;
         for (const e of ready) {
             const ed = g.edgeData(e);
             for (const v of ed.s) {
                 const edgeDependency = vCanBePlaced.get(v);
                 if (edgeDependency !== undefined) {
+                    // usedSourceless = true;
                     addToLastLayer(edgeDependency);
                     vPlaced.add(v);
                     sourcelessEdges.delete(edgeDependency);
@@ -209,7 +294,12 @@ export function layerDecomp(g) {
             edges.delete(e);
         }
         if (eLayer.every(e => newIds.has(e))) {
-            throw new Error('Could not make progress. Is graph acyclic?');
+            if (sourcelessEdges.size !== 0) {
+                sourcelessEdges.forEach(e => eLayer.push(e));
+            }
+            else {
+                throw new Error('Could not make progress. Is graph acyclic?');
+            }
         }
         eLayers.push(eLayer);
         if (edges.size > 0) {
@@ -221,6 +311,7 @@ export function layerDecomp(g) {
                 }
             }
         }
+        firstTime = false;
     }
     const unplacedSourceless = [...sourcelessEdges];
     if (unplacedSourceless.length !== 0) {
@@ -231,7 +322,10 @@ export function layerDecomp(g) {
     // where each entry of [eLayerWithData] is [e, s, t]
     for (let i = 0; i < eLayers.length; i++) {
         const es = eLayers[i];
-        const esWithData = es.map(e => [e, g.source(e), g.target(e)]);
+        const esWithData = es.map(e => {
+            const ed = g.edgeData(e);
+            return { id: e, s: ed.s, t: ed.t };
+        });
         eLayersWithData.push(esWithData);
     }
     // Forward pass
@@ -239,18 +333,18 @@ export function layerDecomp(g) {
     for (let i = 0; i < eLayers.length; i++) {
         const esWithData = eLayersWithData[i];
         // console.log('order:', [...verticesOfPrevLayer], 'sorting:', [...esWithData]);
-        esWithData.sort(([_e1, s1, _t1], [_e2, s2, _t2]) => sortEdges(verticesOfPrevLayer, s1, s2));
+        esWithData.sort(({ s: s1 }, { s: s2 }) => sortEdges(verticesOfPrevLayer, s1, s2));
         // console.log('sorted as:', [...esWithData], 'value:', [...eLayersWithData[i]]);
         eLayersWithData[i] = esWithData;
-        verticesOfPrevLayer = esWithData.reduce((vs, [_e, _s, t]) => vs.concat(t), []);
+        verticesOfPrevLayer = esWithData.reduce((vs, { t }) => vs.concat(t), []);
     }
     // Backwards pass
     var verticesOfNextLayer = g.outputs();
     for (let i = eLayers.length - 1; 0 <= i; i--) {
         const esWithData = eLayersWithData[i];
         const verticesOfPrevLayer = i === 0 ? g.inputs()
-            : eLayersWithData[i].reduce((vs, [_e, _s, t]) => vs.concat(t), []);
-        esWithData.sort(function ([_e1, s1, t1], [_e2, s2, t2]) {
+            : eLayersWithData[i].reduce((vs, { t }) => vs.concat(t), []);
+        esWithData.sort(function ({ s: s1, t: t1 }, { s: s2, t: t2 }) {
             let ssort = sortEdges(verticesOfPrevLayer, s1, s2);
             if (ssort !== 0) {
                 return ssort;
@@ -258,9 +352,21 @@ export function layerDecomp(g) {
             return sortEdges(verticesOfNextLayer, t1, t2);
         });
         eLayersWithData[i] = esWithData;
-        verticesOfNextLayer = esWithData.reduce((vs, [_e, s, _t]) => vs.concat(s), []);
+        verticesOfNextLayer = esWithData.reduce((vs, { s }) => vs.concat(s), []);
     }
-    return eLayersWithData.map(es => es.map(([e, _s, _t]) => e));
+    var eLWD;
+    if (g.numEdges() < 30 && eLayersWithData.every(el => el.length <= 6)) {
+        const eLWD_invs = getLayerDecompInvs(g.inputs(), eLayersWithData, g.outputs());
+        const eLWD_opt = optimizeLayerDecompExpensive(g.inputs(), [...eLayersWithData], g.outputs(), eLWD_invs);
+        eLWD = eLWD_opt === null ? eLayersWithData : eLWD_opt.ld;
+        // console.log("orig: ", eLayersWithData, "cost: ", eLWD_invs, "new?: ", eLWD_opt,
+        //     g.inputs(), g.outputs()
+        // );
+    }
+    else {
+        eLWD = eLayersWithData;
+    }
+    return eLWD.map(es => es.map(({ id: e }) => e));
 }
 /** Convert a permutation to its string representation */
 export function permToString(perm) {

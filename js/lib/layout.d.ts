@@ -1,4 +1,5 @@
 import { Graph } from './graph.ts';
+import { type Chyp2Settings } from './util.ts';
 /**
  * Lay out a graph using layer decomposition and iterative y-coordinate relaxation.
  *
@@ -19,4 +20,5 @@ import { Graph } from './graph.ts';
  * After iteration the whole diagram is centred and non-boundary target vertices are
  * snapped to their incoming edge.
  */
-export declare function convexLayout(g: Graph, force?: boolean, NUM_ITERATIONS?: number): void;
+export declare function convexElementaryLayout(g: Graph, force: boolean | undefined, NUM_ITERATIONS: number | undefined, s: Chyp2Settings): void;
+export declare function convexLayout(s: Chyp2Settings, g: Graph, force?: boolean, NUM_ITERATIONS?: number): void;

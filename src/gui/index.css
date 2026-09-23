@@ -127,3 +127,9 @@ input:focus { outline: 2px solid var(--accent); }
   max-height: 100%;
   object-fit: contain;
 }
+
+.settings-panel {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}

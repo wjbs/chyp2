@@ -3,16 +3,17 @@ import { useRef } from "preact/hooks";
 import { Graph } from "../../lib/graph";
 import { EdgeView } from "./EdgeView";
 import { VertexView } from "./VertexView";
-import { SCALE } from "../../lib/util";
+import { SCALE, type Chyp2Settings } from "../../lib/util";
 import { convexLayout } from "../../lib/layout";
 import { layerDecomp } from "../../lib/term";
 
 interface GraphViewProps {
+    s : Chyp2Settings;
     uuid: string;
     graph: Graph | null;
 }
 
-export function GraphView({ uuid, graph }: GraphViewProps) {
+export function GraphView({ s, uuid, graph }: GraphViewProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     if (!graph) {
         return <div className="graph-panel" />;
@@ -20,7 +21,7 @@ export function GraphView({ uuid, graph }: GraphViewProps) {
     if ((window as any).debug_show_graph) {
         console.log("graph", layerDecomp(graph).map(es => es.map(e => `${e} : ${graph.edgeData(e).value}`).toString()));
     }
-    convexLayout(graph, true, (window as any).NUM_ITERATIONS ?? 10);
+    convexLayout(s, graph, true, (window as any).NUM_ITERATIONS ?? 10);
     const bbox = graph.boundingBox();
     const viewBox = `${bbox[0] * SCALE} ${bbox[2] * SCALE} ${(bbox[1] - bbox[0]) * SCALE} ${(bbox[3] - bbox[2]) * SCALE}`;
     return (
@@ -34,25 +35,26 @@ export function GraphView({ uuid, graph }: GraphViewProps) {
 }
 
 interface GraphPanelsProps {
+    s : Chyp2Settings;
     lhs: Graph | null;
     rhs: Graph | null;
 }
 
-export function GraphPanels({ lhs, rhs }: GraphPanelsProps) {
+export function GraphPanels({ s, lhs, rhs }: GraphPanelsProps) {
     if (rhs === null) {
         return (
             <div style={{ display: 'flex', width: '100%', height: '100%', justifyContent: 'center' }}>
-                <GraphView graph={lhs} uuid="lhs" />
+                <GraphView graph={lhs} uuid="lhs" s={s} />
             </div>
         );
     }
     return (
         <div style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%' }}>
             <div style={{ flex: 1, borderRight: '1px solid #ccc' }}>
-                <GraphView graph={lhs} uuid="lhs" />
+                <GraphView graph={lhs} uuid="lhs" s={s} />
             </div>
             <div style={{ flex: 1 }}>
-                <GraphView graph={rhs} uuid="rhs" />
+                <GraphView graph={rhs} uuid="rhs" s={s} />
             </div>
         </div>
     );

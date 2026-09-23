@@ -13,14 +13,14 @@ function curveOfMonogamousVertex(g, v, inedge, outedge) {
     }
     else {
         const ied = g.edgeData(inedge);
-        if (ied.value !== 'id') {
-            inxpos = ied.x + 0.4 * ied.width;
-            inypos = ied.y + vertexyShift(v, ied.t);
-        }
-        else {
-            inxpos = vd.x;
-            inypos = vd.y;
-        }
+        // if (ied.value !== 'id') {
+        inxpos = ied.x + 0.4 * ied.width;
+        inypos = ied.y + vertexyShift(v, ied.t);
+        // }
+        // else {
+        //     inxpos = vd.x;
+        //     inypos = vd.y;
+        // }
     }
     if (outedge === null) {
         outxpos = vd.x;
@@ -28,14 +28,14 @@ function curveOfMonogamousVertex(g, v, inedge, outedge) {
     }
     else {
         const oed = g.edgeData(outedge);
-        if (oed.value !== 'id') {
-            outxpos = oed.x - 0.4 * oed.width;
-            outypos = oed.y + vertexyShift(v, oed.s);
-        }
-        else {
-            outxpos = vd.x;
-            outypos = vd.y;
-        }
+        // if (oed.value !== 'id') {
+        outxpos = oed.x - 0.4 * oed.width;
+        outypos = oed.y + vertexyShift(v, oed.s);
+        // }
+        // else {
+        //     outxpos = vd.x;
+        //     outypos = vd.y;
+        // }
     }
     return curveBetween(inxpos * SCALE, inypos * SCALE, outxpos * SCALE, outypos * SCALE);
 }
@@ -73,8 +73,12 @@ export function VertexView({ uuid, graph, vertex }) {
         const inEdge = inEdges.length !== 0 ? inEdges[0] : null;
         const outEdge = outEdges.length !== 0 ? outEdges[0] : null;
         if /* ((inEdge !== null && outEdge === null && graph.edgeData(inEdge).value === 'id') ||
-            (outEdge !== null && inEdge === null && graph.edgeData(outEdge).value === 'id')) */ ((inEdge !== null && graph.edgeData(inEdge).value === 'id') ||
-            (outEdge !== null && graph.edgeData(outEdge).value === 'id')) {
+            (outEdge !== null && inEdge === null && graph.edgeData(outEdge).value === 'id')) */ ((inEdge !== null && graph.edgeData(inEdge).value === 'id'
+            && graph.outputs().includes(vertex)
+            && graph.inputs().includes(graph.edgeData(inEdge).s[0])) ||
+            (outEdge !== null && graph.edgeData(outEdge).value === 'id'
+                && graph.inputs().includes(vertex)
+                && graph.outputs().includes(graph.edgeData(outEdge).t[0]))) {
             // Identity edges draw themselves
             return _jsx("g", { id: `v${vertex}` });
         }

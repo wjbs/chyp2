@@ -61,8 +61,8 @@ export class EData {
         this.width = width ??
             (value !== 'id' ?
                 Math.max(1, getTextWidth(value) / (SCALE / 3.75) + 0.4)
-                : 0);
-        this.height = height ?? (s.length <= 1 && t.length <= 1 ? 1 : 2);
+                : 1);
+        this.height = height ?? (value !== 'id' ? (s.length <= 1 && t.length <= 1 ? 1 : 2) : 1);
         this.s = s;
         this.t = t;
         this.fg = fg;
