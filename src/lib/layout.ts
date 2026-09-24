@@ -19,19 +19,19 @@ import { inversionsWRT, vertexyShift, type Chyp2Settings } from './util.ts';
 
 import loadHighs, { type HessianInput, type Highs, type ModelData, type SparseMatrixInput } from "highs";
 
-const highs : Highs = await loadHighs();
+// const highs : Highs = await loadHighs();
 
-// var _highs : Highs | null = null;
+var _highs : Highs | null = null;
 
 // hack to get around no top-level await in CJS
-// loadHighs().then(value => {_highs = value});
+loadHighs().then(value => {_highs = value});
 
 function getHighs() : Highs {
-    return highs;
-    // if (_highs === null) {
-    //     throw new Error("Highs requested before assignment!")
-    // }
-    // else return _highs;
+    // return highs;
+    if (_highs === null) {
+        throw new Error("Highs requested before assignment!")
+    }
+    else return _highs;
 }
 
 
